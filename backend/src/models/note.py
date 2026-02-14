@@ -41,3 +41,8 @@ class NoteUpdate(SQLModel):
     title: Optional[str] = None
     content: Optional[str] = None
     area_id: Optional[int] = None
+
+
+class NoteSearchResult(NoteBase):
+    id: int
+    type: str = "note"

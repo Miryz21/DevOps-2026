@@ -8,13 +8,26 @@ interface SidebarProps {
   onLogout: () => void;
   areas: Area[];
   onCreateArea: (name: string, color: string) => Promise<void>;
+  activeTasksCount: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogout, areas, onCreateArea }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogout, areas, onCreateArea, activeTasksCount }) => {
   const [showLogout, setShowLogout] = useState(false);
   const [isCreatingArea, setIsCreatingArea] = useState(false);
   const [newAreaName, setNewAreaName] = useState('');
-  const [newAreaColor, setNewAreaColor] = useState('bg-blue-500');
+  
+  const colors = [
+    'bg-red-500', 'bg-orange-500', 'bg-amber-500',
+    'bg-green-500', 'bg-teal-500', 'bg-blue-500',
+    'bg-indigo-500', 'bg-purple-500', 'bg-pink-500'
+  ];
+
+  const getNextAvailableColor = () => {
+    const usedColors = areas.map(area => area.color);
+    return colors.find(color => !usedColors.includes(color)) || colors[0];
+  }
+
+  const [newAreaColor, setNewAreaColor] = useState(getNextAvailableColor());
   const [showColorPalette, setShowColorPalette] = useState(false);
   
   const profileRef = useRef<HTMLDivElement>(null);
@@ -22,15 +35,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'tasks', label: 'Tasks', icon: 'check_circle', badge: 12 },
+    { id: 'tasks', label: 'Tasks', icon: 'check_circle', badge: activeTasksCount },
     { id: 'notes', label: 'Notes', icon: 'description' },
   ];
 
-  const colors = [
-    'bg-red-500', 'bg-orange-500', 'bg-amber-500',
-    'bg-green-500', 'bg-teal-500', 'bg-blue-500',
-    'bg-indigo-500', 'bg-purple-500', 'bg-pink-500'
-  ];
+  useEffect(() => {
+    setNewAreaColor(getNextAvailableColor());
+  }, [areas]);
 
   // Close popup listeners
   useEffect(() => {
@@ -54,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
   const resetCreation = () => {
       setIsCreatingArea(false);
       setNewAreaName('');
-      setNewAreaColor('bg-blue-500');
+      setNewAreaColor(getNextAvailableColor());
       setShowColorPalette(false);
   };
 
@@ -70,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800/50">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white mr-3">
-          <span className="material-icons text-xl">grid_view</span>
+          <span className="material-icons">grid_view</span>
         </div>
         <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">FocusFlow</h1>
       </div>
@@ -105,11 +116,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
         <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 px-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Areas</p>
             {areas.map((area) => {
-                const isActive = currentPage === `area:${area.name}`;
+                const isActive = currentPage === `area:${area.id}`;
                 return (
                     <button 
                         key={area.id} 
-                        onClick={() => onNavigate(`area:${area.name}`)}
+                        onClick={() => onNavigate(`area:${area.id}`)}
                         className={`w-full flex items-center px-2 py-2 text-sm rounded-lg group transition-colors ${
                             isActive 
                             ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' 
@@ -129,19 +140,38 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
                         onClick={() => setIsCreatingArea(true)}
                         className="w-full flex items-center px-2 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
                     >
-                        <span className="material-icons text-lg mr-3 group-hover:text-primary">add</span>
+                        <span className="material-icons">add</span>
                         Create area
                     </button>
                 ) : (
                     <div className="flex items-center px-1 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 animate-fade-in-up">
-                        {/* Buttons on left */}
-                        <button onClick={resetCreation} className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                            <span className="material-icons text-sm">close</span>
+                        {/* Buttons on left
+                        <button onClick={resetCreation} className="p-0 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                            <span className="material-icons">close</span>
                         </button>
-                        <button onClick={handleCreateArea} className="p-1 text-slate-400 hover:text-green-500 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors mr-1">
-                            <span className="material-icons text-sm">check</span>
+                        <button onClick={handleCreateArea} className="p-0 text-slate-400 hover:text-green-500 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors mr-1">
+                            <span className="material-icons">check</span>
                         </button>
+                        */}
+                        {/* Color Dot with Palette */}
+                        <div className="relative">
+                            <div
+                                onClick={() => setShowColorPalette(!showColorPalette)}
+                                className={`w-4 h-4 rounded-full ${newAreaColor} cursor-pointer hover:scale-110 transition-transform flex-shrink-0 mr-1 ring-1 ring-offset-1 ring-slate-300 dark:ring-slate-600 ring-offset-transparent`}
+                            ></div>
 
+                            {showColorPalette && (
+                                <div className="absolute bottom-full left-0 right-auto mb-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 grid grid-cols-3 gap-2 w-24">
+                                    {colors.map(color => (
+                                        <div
+                                            key={color}
+                                            onClick={() => { setNewAreaColor(color); setShowColorPalette(false); }}
+                                            className={`w-5 h-5 rounded-full ${color} cursor-pointer hover:scale-110 transition-transform border border-slate-200 dark:border-slate-600`}
+                                        ></div>
+                                   ))}
+                                </div>
+                            )}
+                        </div>
                         <input 
                             autoFocus
                             value={newAreaName}
@@ -153,26 +183,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
                             className="w-full bg-transparent border-none text-sm px-2 py-1 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-0 min-w-0"
                             placeholder="Name"
                         />
-                        
-                        {/* Color Dot with Palette */}
-                        <div className="relative">
-                            <div 
-                                onClick={() => setShowColorPalette(!showColorPalette)}
-                                className={`w-4 h-4 rounded-full ${newAreaColor} cursor-pointer hover:scale-110 transition-transform flex-shrink-0 mr-1 ring-1 ring-offset-1 ring-slate-300 dark:ring-slate-600 ring-offset-transparent`}
-                            ></div>
-                            
-                            {showColorPalette && (
-                                <div className="absolute bottom-full right-0 mb-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 grid grid-cols-3 gap-2 w-24">
-                                    {colors.map(color => (
-                                        <div 
-                                            key={color}
-                                            onClick={() => { setNewAreaColor(color); setShowColorPalette(false); }}
-                                            className={`w-5 h-5 rounded-full ${color} cursor-pointer hover:scale-110 transition-transform border border-slate-200 dark:border-slate-600`}
-                                        ></div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 )}
             </div>
@@ -187,7 +197,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
                     onClick={onLogout}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                  >
-                     <span className="material-icons text-sm">logout</span>
+                     <span className="material-icons">logout</span>
                      Log out
                  </button>
              </div>
@@ -199,14 +209,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
         >
           {user ? (
              <>
-                <img 
-                    src={user.avatar} 
-                    alt="Profile" 
-                    className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700" 
-                />
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-bold">
+                    {user.full_name.charAt(0).toUpperCase()}
+                </div>
                 <div className="ml-3 overflow-hidden text-left">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.plan} Plan</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.full_name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
                 </div>
              </>
           ) : (

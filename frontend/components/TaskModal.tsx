@@ -31,7 +31,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, isOpen, onClose, onSave, ar
       setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const currentAreaColor = areas.find(a => a.name === formData.area)?.color || 'bg-slate-500';
+  const currentAreaColor = areas.find(a => a.id === formData.area_id)?.color || 'bg-slate-500';
 
   return (
     <div className="fixed inset-0 bg-background-dark/30 dark:bg-black/50 backdrop-blur-sm z-40 transition-opacity flex items-center justify-center p-4">
@@ -57,12 +57,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, isOpen, onClose, onSave, ar
                 <div className="relative group flex items-center gap-1">
                    <span className={`w-2 h-2 rounded-full ${currentAreaColor}`}></span>
                    <select 
-                      value={formData.area} 
-                      onChange={(e) => handleChange('area', e.target.value)}
+                      value={formData.area_id || ''} 
+                      onChange={(e) => handleChange('area_id', parseInt(e.target.value, 10))}
                       className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer p-0"
                    >
                        {areas.map(area => (
-                           <option key={area.id} value={area.name}>{area.name}</option>
+                           <option key={area.id} value={area.id}>{area.name}</option>
                        ))}
                    </select>
                 </div>
@@ -87,8 +87,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, isOpen, onClose, onSave, ar
                         <input 
                             type="date"
                             className="bg-transparent border-none p-0 text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0"
-                            value={formData.dueDate ? formData.dueDate.split('T')[0] : ''}
-                            onChange={(e) => handleChange('dueDate', e.target.value ? new Date(e.target.value).toISOString() : undefined)}
+                            value={formData.due_date ? formData.due_date.split('T')[0] : ''}
+                            onChange={(e) => handleChange('due_date', e.target.value ? new Date(e.target.value).toISOString() : undefined)}
                         />
                     </div>
                 </div>

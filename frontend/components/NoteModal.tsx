@@ -22,7 +22,14 @@ const NoteModal: React.FC<NoteModalProps> = ({ note, isOpen, onClose, onSave, ar
 
   const handleSave = () => {
       if (formData.title) {
-          onSave(formData as Note);
+          // Create a clean copy of formData to ensure no unexpected properties are passed
+          const cleanFormData = {
+              id: note.id,
+              title: formData.title,
+              content: formData.content,
+              area_id: formData.area_id,
+          };
+          onSave(cleanFormData as Note);
           onClose();
       }
   };
@@ -42,19 +49,19 @@ const NoteModal: React.FC<NoteModalProps> = ({ note, isOpen, onClose, onSave, ar
                      <div className="flex items-center space-x-1">
                         <span className="material-icons text-base">folder_open</span>
                          <select 
-                            value={formData.area} 
-                            onChange={(e) => handleChange('area', e.target.value)}
+                            value={formData.area_id || ''} 
+                            onChange={(e) => handleChange('area_id', parseInt(e.target.value, 10))}
                             className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer p-0 text-gray-500 dark:text-gray-400"
                         >
                             {areas.map(area => (
-                                <option key={area.id} value={area.name}>{area.name}</option>
+                                <option key={area.id} value={area.id}>{area.name}</option>
                             ))}
                         </select>
                     </div>
-                    {formData.lastEdited && (
+                    {formData.updated_at && (
                         <>
                             <span className="text-gray-300 dark:text-gray-600">/</span>
-                            <span className="text-xs">Last edited {new Date(formData.lastEdited).toLocaleDateString()}</span>
+                            <span className="text-xs">Last edited {new Date(formData.updated_at).toLocaleDateString()}</span>
                         </>
                     )}
                 </div>

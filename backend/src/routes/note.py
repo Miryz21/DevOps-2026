@@ -49,6 +49,7 @@ def read_notes(
         check_correct_area_id(session, area_id=area_id, user_id=current_user.id)
         select_expr = select_expr.where(Note.area_id == area_id)
 
+    select_expr = select_expr.order_by(Note.updated_at.desc())
     notes = session.exec(select_expr.offset(offset).limit(limit)).all()
     return notes
 

@@ -5,13 +5,15 @@ import TasksPage from './pages/Tasks';
 import NotesPage from './pages/Notes';
 import AreaDetails from './pages/AreaDetails';
 import Login from './pages/Login';
+import SignUp from './pages/SignUp';
 import TaskModal from './components/TaskModal';
 import NoteModal from './components/NoteModal';
 import { api } from './services/api';
-import { AppData, Task, Note, AreaType, Priority } from './types';
+import { AppData, Task, Note, Area, Priority } from './types';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('focusflow_token'));
+  const [authPage, setAuthPage] = useState('login');
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [appData, setAppData] = useState<AppData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,10 +26,19 @@ const App: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getDashboardData();
-      setAppData(data);
+      const [user, areas, tasks, notes] = await Promise.all([
+        api.getUser(),
+        api.getAreas(),
+        api.getTasks(),
+        api.getNotes(),
+      ]);
+      setAppData({ user, areas, tasks, notes });
     } catch (error) {
       console.error("Failed to load data", error);
+      // If token is invalid, logout
+      if (error.message.includes('401')) {
+          handleLogout();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +55,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+      localStorage.removeItem('focusflow_token');
       setIsAuthenticated(false);
       setAppData(null);
       setCurrentPage('dashboard');
@@ -54,51 +66,66 @@ const App: React.FC = () => {
       fetchData();
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = (areaId: number | null = null) => {
       setEditingTask({
           id: '', // Empty ID signals creation
           title: '',
           description: '',
-          area: currentPage.startsWith('area:') ? (currentPage.split(':')[1] as AreaType) : (appData?.areas[0]?.name || 'Work'),
+          area_id: areaId || appData?.areas[0]?.id || null,
           priority: Priority.Medium,
           completed: false,
-          createdAt: new Date().toISOString()
-      } as Task);
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+      });
   };
 
-  const handleCreateNote = () => {
+  const handleCreateNote = (areaId: number | null = null) => {
       setEditingNote({
-          id: '',
           title: '',
           content: '',
-          area: currentPage.startsWith('area:') ? (currentPage.split(':')[1] as AreaType) : (appData?.areas[0]?.name || 'Work'),
-          lastEdited: new Date().toISOString(),
-          createdAt: new Date().toISOString()
-      } as Note);
+          area_id: areaId || appData?.areas[0]?.id || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+      });
   };
 
   const handleSaveTask = async (task: Task) => {
+      const taskToSave = {
+          title: task.title,
+          description: task.description,
+          area_id: task.area_id,
+          priority: task.priority,
+          completed: task.completed,
+          due_date: task.due_date,
+      };
       if (task.id === '') {
-          await api.createTask(task);
+          await api.createTask(taskToSave);
       } else {
-          await api.updateTask(task);
+          await api.updateTask(task.id, taskToSave);
       }
       fetchData();
   };
 
   const handleSaveNote = async (note: Note) => {
-      if (note.id === '') {
-          await api.createNote(note);
+      const noteData = {
+          title: note.title,
+          content: note.content,
+          area_id: note.area_id,
+      };
+      if (note.id == null || note.id === '') { // Check if id is falsy (empty string or 0 for new notes)
+          await api.createNote(noteData);
       } else {
-          await api.updateNote(note);
+          await api.updateNote(note.id, noteData);
       }
       fetchData();
   };
 
-  const handleToggleTask = async (taskId: string) => {
-      await api.toggleTaskCompletion(taskId);
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
+      await api.toggleTaskCompletion(taskId, completed);
       fetchData();
   };
+
+
 
 
   // Simple Router
@@ -110,20 +137,23 @@ const App: React.FC = () => {
             </div>
         );
     }
+    
+    const getAreaName = (areaId: number) => appData?.areas.find(a => a.id === areaId)?.name;
+    const getAreaColor = (areaId: number) => appData?.areas.find(a => a.id === areaId)?.color;
 
     if (currentPage.startsWith('area:')) {
-        const areaName = currentPage.split(':')[1];
-        const areaInfo = appData?.areas.find(a => a.name === areaName);
-        const areaColor = areaInfo?.color || 'bg-slate-500';
+        const areaId = parseInt(currentPage.split(':')[1], 10);
         return (
             <AreaDetails 
-                area={areaName} 
-                color={areaColor}
-                tasks={appData?.tasks.filter(t => t.area === areaName) || []}
-                notes={appData?.notes.filter(n => n.area === areaName) || []}
+                area={getAreaName(areaId) || 'Area'}
+                color={getAreaColor(areaId) || 'bg-slate-500'}
+                tasks={appData?.tasks.filter(t => t.area_id === areaId) || []}
+                notes={appData?.notes.filter(n => n.area_id === areaId) || []}
                 onOpenTask={setEditingTask}
                 onOpenNote={setEditingNote}
                 onToggleTask={handleToggleTask}
+                onNewTask={() => handleCreateTask(areaId)}
+                onNewNote={() => handleCreateNote(areaId)}
             />
         );
     }
@@ -135,6 +165,8 @@ const App: React.FC = () => {
             onNavigate={setCurrentPage}
             onNewTask={handleCreateTask}
             onNewNote={handleCreateNote}
+            onOpenTask={setEditingTask}
+            onOpenNote={setEditingNote}
         />;
       case 'tasks':
         return <TasksPage 
@@ -142,12 +174,14 @@ const App: React.FC = () => {
             onDataUpdate={fetchData} 
             onOpenTask={setEditingTask}
             onNewTask={handleCreateTask}
+            onOpenNote={setEditingNote}
         />;
       case 'notes':
         return <NotesPage 
             data={appData} 
             onOpenNote={setEditingNote}
             onNewNote={handleCreateNote}
+            onOpenTask={setEditingTask}
         />;
       default:
         return <Dashboard 
@@ -155,12 +189,19 @@ const App: React.FC = () => {
             onNavigate={setCurrentPage}
             onNewTask={handleCreateTask}
             onNewNote={handleCreateNote}
+            onOpenTask={setEditingTask}
+            onOpenNote={setEditingNote}
         />;
     }
   };
 
+  const activeTasksCount = appData?.tasks.filter(t => !t.completed).length || 0;
+
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    if (authPage === 'login') {
+      return <Login onLogin={handleLogin} onSwitchToSignUp={() => setAuthPage('signup')} />;
+    }
+    return <SignUp onSwitchToLogin={() => setAuthPage('login')} />;
   }
 
   return (
@@ -172,6 +213,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         areas={appData?.areas || []}
         onCreateArea={handleCreateArea}
+        activeTasksCount={activeTasksCount}
       />
       
       <main className="flex-1 md:ml-64 relative h-full overflow-hidden flex flex-col transition-all">
@@ -201,5 +243,4 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 export default App;

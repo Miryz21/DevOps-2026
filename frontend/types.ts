@@ -1,18 +1,18 @@
 export interface User {
-  id: string;
-  name: string;
+  id: number;
+  full_name: string;
   email: string;
-  avatar: string;
-  plan: 'Free' | 'Pro';
+  created_at: string;
+  updated_at: string;
 }
 
-// Changed from Enum to string type to support dynamic areas
-export type AreaType = string;
-
 export interface Area {
-  id: string;
+  id: number;
   name: string;
-  color: string; // Tailwind class, e.g., "bg-blue-500"
+  color: string;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export enum Priority {
@@ -22,36 +22,26 @@ export enum Priority {
 }
 
 export interface Task {
-  id: string;
+  id: any;
   title: string;
   description?: string;
-  area: string;
+  area_id?: number | null;
   priority?: Priority;
   completed: boolean;
-  dueDate?: string; // ISO date string
-  assignee?: User;
-  tags?: string[];
-  subtasks?: { id: string; title: string; completed: boolean }[];
-  createdAt: string; // ISO date string
+  due_date?: string;
+  user_id?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Note {
-  id: string;
+  id: any;
   title: string;
-  content: string; // Simplified markdown/text
-  area: string;
-  lastEdited: string; // ISO date string
-  previewImage?: string;
-  tags?: string[];
-  createdAt: string; // ISO date string
-}
-
-export interface Activity {
-  id: string;
-  title: string;
-  type: 'note' | 'task';
-  area: string;
-  timestamp: string;
+  content: string;
+  area_id?: number | null;
+  user_id?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AppData {
@@ -59,5 +49,22 @@ export interface AppData {
   tasks: Task[];
   notes: Note[];
   areas: Area[];
-  recentActivity: Activity[];
 }
+
+export interface TaskSearchResult {
+  id: number;
+  title: string;
+  description?: string;
+  priority?: Priority;
+  due_date?: string;
+  type: "task";
+}
+
+export interface NoteSearchResult {
+  id: number;
+  title: string;
+  content: string;
+  type: "note";
+}
+
+export type SearchResult = TaskSearchResult | NoteSearchResult;

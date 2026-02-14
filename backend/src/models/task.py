@@ -1,5 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
+from enum import Enum
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -7,11 +8,18 @@ if TYPE_CHECKING:
     from src.models.area import Area
 
 
+class Priority(str, Enum):
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
+
+
 class TaskBase(SQLModel):
     title: str
     description: Optional[str] = None
     due_date: Optional[str] = None
     completed: bool = False
+    priority: Optional[Priority] = Field(default=Priority.MEDIUM)
 
 
 class Task(TaskBase, table=True):
@@ -45,3 +53,9 @@ class TaskUpdate(SQLModel):
     due_date: Optional[str] = None
     completed: Optional[bool] = None
     area_id: Optional[int] = None
+    priority: Optional[Priority] = None
+
+
+class TaskSearchResult(TaskBase):
+    id: int
+    type: str = "task"

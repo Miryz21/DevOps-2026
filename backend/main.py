@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import user_router, area_router, task_router, note_router
+from src.routes import user_router, area_router, task_router, note_router, search_router
 
 app = FastAPI()
 
@@ -10,6 +10,7 @@ app.include_router(user_router, prefix="/api/v1")
 app.include_router(area_router, prefix="/api/v1")
 app.include_router(task_router, prefix="/api/v1")
 app.include_router(note_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
 
 
 origins = ["*"]

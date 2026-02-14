@@ -8,10 +8,12 @@ interface AreaDetailsProps {
   notes: Note[];
   onOpenTask: (task: Task) => void;
   onOpenNote: (note: Note) => void;
-  onToggleTask: (taskId: string) => void;
+  onToggleTask: (taskId: string, completed: boolean) => void;
+  onNewTask: () => void;
+  onNewNote: () => void;
 }
 
-const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, onOpenTask, onOpenNote, onToggleTask }) => {
+const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, onOpenTask, onOpenNote, onToggleTask, onNewTask, onNewNote }) => {
   const priorityMap: Record<string, number> = { [Priority.High]: 3, [Priority.Medium]: 2, [Priority.Low]: 1 };
 
   // Sort Tasks: Active first, then by Priority, then by CreatedAt DESC
@@ -24,20 +26,32 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
           if (pA !== pB) return pB - pA;
       }
       
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   // Sort Notes: CreatedAt DESC
-  const sortedNotes = [...notes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const sortedNotes = [...notes].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   // Use passed color
   const areaColor = color;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 h-full flex flex-col">
-        <header className="mb-8 flex items-center gap-4">
-            <span className={`w-4 h-4 rounded-full ${areaColor} shadow-md`}></span>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{area}</h1>
+    <div className="px-6 py-8 h-full flex flex-col">
+        <header className="mb-8 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+                <span className={`w-4 h-4 rounded-full ${areaColor} shadow-md`}></span>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{area}</h1>
+            </div>
+            <div className="flex items-center gap-3">
+                <button onClick={onNewNote} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-white dark:bg-neutral-surface-dark border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary">
+                    <span className="material-icons text-lg text-primary">note_add</span>
+                    New Note
+                </button>
+                <button onClick={onNewTask} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-primary text-white hover:bg-primary-hover shadow-primary/30">
+                    <span className="material-icons text-lg text-white">add_task</span>
+                    New Task
+                </button>
+            </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 overflow-hidden min-h-0">
@@ -57,7 +71,7 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
                             onClick={() => onOpenTask(task)}
                             className={`group bg-white dark:bg-neutral-surface-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-start gap-4 ${task.completed ? 'opacity-60 bg-slate-50 dark:bg-slate-900/40' : ''}`}
                         >
-                             <div className="pt-1" onClick={(e) => { e.stopPropagation(); onToggleTask(task.id); }}>
+                             <div className="pt-1" onClick={(e) => { e.stopPropagation(); onToggleTask(task.id, task.completed); }}>
                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                                     task.completed 
                                     ? 'bg-slate-300 dark:bg-slate-700 border-transparent text-white' 
@@ -79,7 +93,7 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
                                 </div>
                                 <p className="text-slate-500 text-sm mt-1 line-clamp-2">{task.description}</p>
                                 <div className="mt-2 text-xs text-slate-400">
-                                    {new Date(task.createdAt).toLocaleDateString()}
+                                    {task.due_date && new Date(task.due_date).toLocaleDateString()}
                                 </div>
                             </div>
                         </div>
@@ -110,7 +124,7 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
                             <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3 mb-3">{note.content}</p>
                             <div className="flex items-center text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
                                  <span className="material-icons text-sm mr-1">event_note</span>
-                                 Created: {new Date(note.createdAt).toLocaleDateString()}
+                                 Created: {new Date(note.created_at).toLocaleDateString()}
                             </div>
                         </div>
                      ))}

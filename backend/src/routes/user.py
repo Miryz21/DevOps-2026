@@ -52,7 +52,7 @@ def create_user(*, session: Session = Depends(get_session), user_in: UserCreate)
     session.refresh(user)
 
     # Create a default "Work" area for the new user
-    work_area = Area(name="Work", user_id=user.id)
+    work_area = Area(name="Work", color="bg-blue-500", user_id=user.id)
     session.add(work_area)
     session.commit()
     session.refresh(work_area)

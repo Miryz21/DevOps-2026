@@ -1,10 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { api } from '../services/api';
 
 interface LoginProps {
   onLogin: () => void;
+  onSwitchToSignUp: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('username', email);
+      formData.append('password', password);
+      await api.login(formData);
+      onLogin();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background-light dark:bg-background-dark">
       {/* Background decoration */}
@@ -22,14 +46,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Log in to manage your tasks and notes.</p>
         </div>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
             <div>
                 <label className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-200">Email address</label>
                 <div className="mt-2 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <span className="material-icons text-xl">mail_outline</span>
                     </div>
-                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" placeholder="you@example.com" type="email" value="alex@prodspace.com" readOnly />
+                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" placeholder="you@example.com" type="email" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
             </div>
             
@@ -39,30 +63,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <span className="material-icons text-xl">lock_outline</span>
                     </div>
-                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" type="password" value="password" readOnly />
+                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" type="password" value={password} onChange={e => setPassword(e.target.value)} />
                 </div>
             </div>
 
-            <button onClick={onLogin} className="flex w-full justify-center rounded-md bg-primary px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-600 transition-all">
-                Log in
-            </button>
-        </div>
-        
-        <div className="relative mt-8">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
-            <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white dark:bg-slate-900 px-4 text-slate-500">Or continue with</span>
-            </div>
-        </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        <div className="mt-6 grid grid-cols-2 gap-4">
-            <button className="flex w-full items-center justify-center gap-2 rounded-md bg-white dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 transition-colors">
-                Google
+            <button type="submit" disabled={loading} className="flex w-full justify-center rounded-md bg-primary px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-600 transition-all disabled:opacity-50">
+                {loading ? 'Logging in...' : 'Log in'}
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-md bg-[#24292F] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#24292F]/90 transition-colors">
-                GitHub
-            </button>
-        </div>
+        </form>
+        
+<div className="mt-6 text-center">
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+        Don't have an account?{' '}
+        <button onClick={onSwitchToSignUp} className="font-semibold text-primary hover:text-primary-hover transition-colors">
+            Sign up
+        </button>
+    </p>
+</div>
       </div>
     </div>
   );
