@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppData, Task, Priority, Area, SearchResult } from '../types';
+import { AppData, Task, Priority, Area, SearchResult, Note } from '../types';
 import { api } from '../services/api';
 
 interface TasksPageProps {

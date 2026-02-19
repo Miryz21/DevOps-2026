@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppData, Area, SearchResult } from '../types';
+import { AppData, Area, SearchResult, Task, Note } from '../types';
 import { api } from '../services/api';
 
 interface DashboardProps {
@@ -31,7 +31,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate, onNewTask, onNe
       if (searchQuery.length > 1) {
         setIsSearchLoading(true);
         try {
-          const results = await api.search(searchQuery);
+          const results = await api.search(searchQuery, 'all');
           setSearchResults(results);
           setNoSearchResults(results.length === 0);
         } catch (error) {
