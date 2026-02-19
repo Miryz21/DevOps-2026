@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./backend
         run: |
-          ~/.local/bin/uv sync
+          ~/.local/bin/uv sync --all-extras
       
       - name: Verify dependencies
         working-directory: ./backend
@@ -77,7 +77,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./backend
         run: |
-          ~/.local/bin/uv sync
+          ~/.local/bin/uv sync --all-extras
       
       - name: Run tests
         working-directory: ./backend
