@@ -1,0 +1,144 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, lab1 ]
+  pull_request:
+    branches: [ main, develop, lab1 ]
+
+jobs:
+  # ==================== BACKEND JOBS ====================
+  
+  backend-build:
+    name: Backend - Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install uv package manager
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
+      - name: Cache uv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv sync --all-extras
+      
+      - name: Verify dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
+
+  backend-test:
+    name: Backend - Test
+    runs-on: ubuntu-latest
+    needs: backend-build
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install uv package manager
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
+      - name: Cache uv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv sync --all-extras
+      
+      - name: Run tests
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
+
+  # ==================== FRONTEND JOBS ====================
+  
+  frontend-build:
+    name: Frontend - Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ '20.x', '22.x' ]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+      
+      - name: Type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+      
+      - name: Build project
+        working-directory: ./frontend
+        run: npm run build
+
+  frontend-test:
+    name: Frontend - Test
+    runs-on: ubuntu-latest
+    needs: frontend-build
+    strategy:
+      matrix:
+        node-version: [ '20.x', '22.x' ]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- tests/core-logic.test.tsx --run
