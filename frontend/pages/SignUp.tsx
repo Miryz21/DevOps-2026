@@ -3,16 +3,16 @@ import { api } from '../services/api';
 
 interface SignUpProps {
   onSwitchToLogin: () => void;
+  onLogin: () => void;
 }
 
-const SignUp: React.FC<SignUpProps> = ({ onSwitchToLogin }) => {
+const SignUp: React.FC<SignUpProps> = ({ onSwitchToLogin, onLogin }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchToLogin }) => {
     setError(null);
     try {
       await api.register(email, fullName, password);
-      setSuccess(true);
+      onLogin();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,112 +48,97 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchToLogin }) => {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Start organizing your tasks and notes today.</p>
         </div>
 
-        {success ? (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-green-500">Registration successful!</h2>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">
-              You can now{' '}
+          <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="full-name">Full Name</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="material-icons text-slate-400 text-lg">person</span>
+                </div>
+                <input
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
+                  id="full-name"
+                  name="full-name"
+                  placeholder="John Doe"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="email">Email Address</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="material-icons text-slate-400 text-lg">mail</span>
+                </div>
+                <input
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
+                  id="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="password">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="material-icons text-slate-400 text-lg">lock</span>
+                </div>
+                <input
+                  className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="confirm-password">Confirm Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="material-icons text-slate-400 text-lg">lock_reset</span>
+                </div>
+                <input
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
+                  id="confirm-password"
+                  name="confirm-password"
+                  placeholder="••••••••"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-4 border-t border-slate-100 dark:border-slate-800 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Already have an account?{' '}
               <button onClick={onSwitchToLogin} className="font-semibold text-primary hover:text-primary-hover transition-colors">
-                log in
+                Log in
               </button>
-              .
             </p>
           </div>
-        ) : (
-          <>
-            <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="full-name">Full Name</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-icons text-slate-400 text-lg">person</span>
-                  </div>
-                  <input
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
-                    id="full-name"
-                    name="full-name"
-                    placeholder="John Doe"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="email">Email Address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-icons text-slate-400 text-lg">mail</span>
-                  </div>
-                  <input
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
-                    id="email"
-                    name="email"
-                    placeholder="you@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="password">Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-icons text-slate-400 text-lg">lock</span>
-                  </div>
-                  <input
-                    className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
-                    id="password"
-                    name="password"
-                    placeholder="••••••••"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="confirm-password">Confirm Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-icons text-slate-400 text-lg">lock_reset</span>
-                  </div>
-                  <input
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow duration-200"
-                    id="confirm-password"
-                    name="confirm-password"
-                    placeholder="••••••••"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <button
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200"
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? 'Creating account...' : 'Create Account'}
-              </button>
-            </form>
-
-            <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-4 border-t border-slate-100 dark:border-slate-800 text-center">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Already have an account?{' '}
-                <button onClick={onSwitchToLogin} className="font-semibold text-primary hover:text-primary-hover transition-colors">
-                  Log in
-                </button>
-              </p>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

@@ -201,7 +201,7 @@ const App: React.FC = () => {
     if (authPage === 'login') {
       return <Login onLogin={handleLogin} onSwitchToSignUp={() => setAuthPage('signup')} />;
     }
-    return <SignUp onSwitchToLogin={() => setAuthPage('login')} />;
+    return <SignUp onSwitchToLogin={() => setAuthPage('login')} onLogin={handleLogin} />;
   }
 
   return (

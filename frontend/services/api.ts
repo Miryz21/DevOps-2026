@@ -49,10 +49,12 @@ export const api = {
     },
 
     register: async (email: string, fullName, password) => {
-        return apiFetch('/users/register', {
+        const data = await apiFetch('/users/register', {
             method: 'POST',
             body: JSON.stringify({ email, full_name: fullName, password }),
         });
+        setAuthToken(data.access_token);
+        return data;
     },
 
     getUser: async () => {
