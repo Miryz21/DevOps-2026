@@ -1,4 +1,4 @@
-# Frontend on NextJS + TypeScript
+# Frontend on React + TypeScript
 
 ## How to set up:
 1. Clone repo:
