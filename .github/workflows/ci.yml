@@ -141,4 +141,4 @@ jobs:
       
       - name: Run tests
         working-directory: ./frontend
-        run: npm test -- tests/core-logic.test.ts --run
+        run: npm test -- tests/core-logic.test.tsx --run
