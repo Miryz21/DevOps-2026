@@ -22,16 +22,22 @@ def test_create_user_success_creates_default_area(mock_token, mock_session, user
     mock_token.return_value = "token123"
     mock_session.exec.return_value.first.return_value = None  # email не занят
 
+    # Simulate commit() and refresh() setting the user ID
+    def set_user_id_on_refresh(user_obj):
+        user_obj.id = 1  # Simulate DB-assigned ID
+    
+    mock_session.refresh.side_effect = set_user_id_on_refresh
+
     result = create_user(session=mock_session, user_in=user_data)
 
     assert result.access_token == "token123"
-    # Проверяем, что добавили пользователя и область
+    # Проверяем, что добавили пользователя и область (2 add calls)
     assert mock_session.add.call_count == 2
     # Проверяем, что область называется "Work" и привязана к пользователю
     area_call = mock_session.add.call_args_list[1][0][0]
     assert isinstance(area_call, Area)
     assert area_call.name == "Work"
-    assert area_call.user_id is not None  # ID возьмётся после commit, но тут мок
+    assert area_call.user_id == 1 
 
 # 2. Регистрация с уже существующим email → 400
 def test_create_user_duplicate_email_raises_error(mock_session, user_data):
@@ -86,4 +92,3 @@ def test_get_current_user_valid_token(mock_decode, mock_session):
 
     assert result == user
     mock_decode.assert_called_once_with("valid_token")
-    
