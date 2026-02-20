@@ -50,6 +50,15 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  // Listen for auth:logout events from API calls (e.g., 401 unauthorized)
+  useEffect(() => {
+    const handleLogoutEvent = () => {
+      handleLogout();
+    };
+    window.addEventListener('auth:logout', handleLogoutEvent);
+    return () => window.removeEventListener('auth:logout', handleLogoutEvent);
+  }, []);
+
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
