@@ -43,13 +43,13 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{area}</h1>
             </div>
             <div className="flex items-center gap-3">
-                <button onClick={onNewNote} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-white dark:bg-neutral-surface-dark border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary">
-                    <span className="material-icons text-lg text-primary">note_add</span>
-                    New Note
-                </button>
                 <button onClick={onNewTask} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-primary text-white hover:bg-primary-hover shadow-primary/30">
                     <span className="material-icons text-lg text-white">add_task</span>
                     New Task
+                </button>
+                <button onClick={onNewNote} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-white dark:bg-neutral-surface-dark border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary">
+                    <span className="material-icons text-lg text-primary">note_add</span>
+                    New Note
                 </button>
             </div>
         </header>

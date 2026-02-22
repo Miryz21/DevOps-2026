@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
                   {item.icon}
                 </span>
                 {item.label}
-                {item.badge && (
+                {(item.badge > 0) && (
                   <span className={`ml-auto py-0.5 px-2 rounded-full text-xs font-semibold ${isActive ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                     {item.badge}
                   </span>

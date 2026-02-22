@@ -154,13 +154,13 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate, onNewTask, onNe
                     No results found.
                 </div>
             )}
-             <button onClick={() => onNewNote(null)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-white dark:bg-neutral-surface-dark border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary text-primary">
-                <span className="material-icons text-lg text-primary">note_add</span>
-                New Note
-             </button>
              <button onClick={() => onNewTask(null)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-primary text-white hover:bg-primary-hover shadow-primary/30">
                 <span className="material-icons text-lg text-white">add_task</span>
                 New Task
+             </button>
+             <button onClick={() => onNewNote(null)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all bg-white dark:bg-neutral-surface-dark border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary text-primary">
+                <span className="material-icons text-lg text-primary">note_add</span>
+                New Note
              </button>
         </div>
       </div>

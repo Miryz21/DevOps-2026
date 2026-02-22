@@ -25,7 +25,7 @@ def search_items(
     search_pattern = f"%{query}%"
     results = []
 
-    if item_type is None or item_type == "task":
+    if item_type is None or item_type in ["task", "all"]:
         # Search for Tasks
         tasks_statement = select(Task).where(
             Task.user_id == current_user.id,
@@ -56,7 +56,7 @@ def search_items(
 
         limit -= len(results)
 
-    if item_type is None or item_type == "note":
+    if item_type is None or item_type in ["note", "all"]:
         # Search for Notes
         notes_statement = select(Note).where(
             Note.user_id == current_user.id,
