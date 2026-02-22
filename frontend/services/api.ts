@@ -1,4 +1,4 @@
-const BASE_URL = 'http://127.0.0.1:5000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1';
 
 const getAuthToken = (): string | null => {
     return localStorage.getItem('focusflow_token');

@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: focusflow-postgres
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: devops_secret_password
+      POSTGRES_DB: devops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - focusflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: focusflow-backend
+    environment:
+      DATABASE_URL: postgresql://devops:devops_secret_password@postgres/devops
+      SECRET_KEY: keys/private.pem
+      PUBLIC_KEY: keys/public.pem
+    ports:
+      - "5555:5555"
+    networks:
+      - focusflow-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5555/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5555/api/v1
+    container_name: focusflow-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - focusflow-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  focusflow-network:
+    driver: bridge

@@ -63,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignUp }) => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <span className="material-icons text-xl">lock_outline</span>
                     </div>
-                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+                    <input className="block w-full rounded-md border-0 py-2.5 pl-10 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary dark:bg-slate-800 dark:text-white sm:text-sm sm:leading-6" placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
                 </div>
             </div>
 

@@ -5,12 +5,14 @@ from src.routes import user_router, area_router, task_router, note_router, searc
 
 app = FastAPI()
 
+API_PREFIX = "/api/v1"
+
 # Include routers
-app.include_router(user_router, prefix="/api/v1")
-app.include_router(area_router, prefix="/api/v1")
-app.include_router(task_router, prefix="/api/v1")
-app.include_router(note_router, prefix="/api/v1")
-app.include_router(search_router, prefix="/api/v1")
+app.include_router(user_router, prefix=API_PREFIX)
+app.include_router(area_router, prefix=API_PREFIX)
+app.include_router(task_router, prefix=API_PREFIX)
+app.include_router(note_router, prefix=API_PREFIX)
+app.include_router(search_router, prefix=API_PREFIX)
 
 
 origins = ["*"]
@@ -24,4 +26,4 @@ app.add_middleware(
 )
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=5000, log_level="info")
+    uvicorn.run("main:app", host="0.0.0.0", port=5555, log_level="info")

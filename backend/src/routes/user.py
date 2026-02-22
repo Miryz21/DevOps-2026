@@ -33,7 +33,7 @@ def get_current_user(
         )
     user = session.exec(select(UserInfo).where(UserInfo.email == token_email)).first()
     if not user:
-        raise HTTPException(status_code=404, detail="UserInfo not found")
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials: UserInfo not found")
     return user
 
 

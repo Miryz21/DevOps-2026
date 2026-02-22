@@ -1,0 +1,47 @@
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env
+pip-log.txt
+pip-delete-this-directory
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Virtual environment
+.venv
+venv
+ENV
+env
+virtualenv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+
+# Project specific
+migrations/versions/__pycache__
+
+# Secrets
+.env
+
+# Caches
+.uv_cache
