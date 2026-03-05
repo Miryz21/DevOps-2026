@@ -32,19 +32,20 @@
     - name: Run docker compose up -d
       community.docker.docker_compose_v2:
         project_src: "{{ app_directory }}"
-        build: yes
-        pull: yes
+        build: always
+        pull: missing
         state: present
       environment:
         COMPOSE_HTTP_TIMEOUT: 300
 
     - name: Wait for containers to start
       wait_for:
-        timeout: 60
+        timeout: 30
       delegate_to: localhost
+      become: no
 
     - name: Get container status
-      command: docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      command: docker ps --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}\t{{ '{{' }}.Ports{{ '}}' }}"
       register: containers_status
       changed_when: false
 
