@@ -187,5 +187,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          build-args: |
+            VITE_API_URL=${{ secrets.BACKEND_HOST }}/api/v1
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}:frontend-latest
