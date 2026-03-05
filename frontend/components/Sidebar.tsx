@@ -80,9 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
     <aside className="w-64 bg-white dark:bg-[#1a202c] border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-10 hidden md:flex">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800/50">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white mr-3">
-          <span className="material-icons">grid_view</span>
-        </div>
+        <img src="/logo.png" alt="FocusFlow logo" className="w-8 h-8 rounded-lg mr-3 object-contain" />
         <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">FocusFlow</h1>
       </div>
 
