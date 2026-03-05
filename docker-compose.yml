@@ -22,8 +22,7 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: backend
     container_name: focusflow-backend
     environment:
       DATABASE_URL: postgresql://devops:devops_secret_password@postgres/devops
@@ -45,8 +44,7 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: frontend
       args:
         VITE_API_URL: ${HOST:-http://localhost:5555}/api/v1
     container_name: focusflow-frontend

@@ -9,13 +9,13 @@ RUN apt-get update && apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
-COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
+COPY pyproject.toml uv.lock .python-version ./
 
 # Install dependencies (production only, no dev dependencies)
 RUN uv sync --frozen --no-dev
 
 # Copy application code and keys
-COPY backend/ /app/
+COPY . /app/
 
 # Expose port
 EXPOSE 5555

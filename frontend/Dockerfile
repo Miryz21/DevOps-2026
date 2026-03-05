@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY frontend/package*.json ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm ci
@@ -13,7 +13,7 @@ RUN npm ci
 ARG VITE_API_URL
 
 # Copy source code
-COPY frontend/ ./
+COPY . ./
 
 # Set environment variable and build
 ENV VITE_API_URL=${VITE_API_URL}
@@ -26,7 +26,7 @@ FROM nginx:alpine AS runtime
 RUN apk add --no-cache curl
 
 # Copy custom nginx configuration
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built app from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
