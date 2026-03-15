@@ -8,48 +8,10 @@ on:
 
 jobs:
   # ==================== BACKEND JOBS ====================
-  
-  backend-build:
-    name: Backend - Build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11']
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      
-      - name: Install uv package manager
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
-      - name: Cache uv dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
-      
-      - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
-      
-      - name: Verify dependencies
-        working-directory: ./backend
-        run: |
-          ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
 
   backend-test:
     name: Backend - Test
     runs-on: ubuntu-latest
-    needs: backend-build
     strategy:
       matrix:
         python-version: ['3.10', '3.11']
@@ -84,64 +46,75 @@ jobs:
         run: |
           ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
 
+  backend-build:
+    name: Backend - Build
+    runs-on: ubuntu-latest
+    needs: backend-test
+    strategy:
+      matrix:
+        python-version: [ '3.10', '3.11' ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv package manager
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv sync --all-extras
+
+      - name: Verify dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
+
   backend-docker:
     name: Backend - Docker build
     runs-on: ubuntu-latest
-    needs: backend-test
+    needs: backend-build
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: cr.yandex
+          username: oauth
+          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}:backend-latest
+          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
 
   # ==================== FRONTEND JOBS ====================
-  
-  frontend-build:
-    name: Frontend - Build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [ '20.x', '22.x' ]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-      
-      - name: Type check
-        working-directory: ./frontend
-        run: npx tsc --noEmit
-      
-      - name: Build project
-        working-directory: ./frontend
-        run: npm run build
 
   frontend-test:
     name: Frontend - Test
     runs-on: ubuntu-latest
-    needs: frontend-build
     strategy:
       matrix:
         node-version: [ '20.x', '22.x' ]
@@ -165,20 +138,52 @@ jobs:
         working-directory: ./frontend
         run: npm test -- tests/core-logic.test.tsx --run
 
+  frontend-build:
+    name: Frontend - Build
+    runs-on: ubuntu-latest
+    needs: frontend-test
+    strategy:
+      matrix:
+        node-version: [ '20.x', '22.x' ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+      - name: Build project
+        working-directory: ./frontend
+        run: npm run build
+
   frontend-docker:
     name: Frontend - Docker build
     runs-on: ubuntu-latest
-    needs: frontend-test
+    needs: frontend-build
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: cr.yandex
+          username: oauth
+          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -190,4 +195,4 @@ jobs:
           build-args: |
             VITE_API_URL=${{ secrets.BACKEND_HOST }}/api/v1
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}:frontend-latest
+          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:latest
