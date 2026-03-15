@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: focusflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: cr.yandex/crp1ghkks5e8qc0ftr95/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5555
+          env:
+            - name: DATABASE_URL
+              value: postgresql://devops:devops_secret_password@postgres:5432/devops
+            - name: SECRET_KEY
+              value: keys/private.pem
+            - name: PUBLIC_KEY
+              value: keys/public.pem
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 5555
+            initialDelaySeconds: 40
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 5555
+            initialDelaySeconds: 40
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1024Mi"
