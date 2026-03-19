@@ -45,3 +45,25 @@ migrations/versions/__pycache__
 
 # Caches
 .uv_cache
+
+# Docker files (not needed in container)
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+*.md
+
+# Development files
+.python-version
+
+# Tests
+tests/
+test*.py
+conftest.py
+pytest.ini
+.coverage
+coverage.html
+
+# Temporary files
+*.txt
