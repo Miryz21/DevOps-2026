@@ -46,10 +46,37 @@ jobs:
         run: |
           ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
 
+  frontend-test:
+    name: Frontend - Test
+    runs-on: ubuntu-latest
+    needs: backend-test
+    strategy:
+      matrix:
+        node-version: [ '20.x', '22.x' ]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- tests/core-logic.test.tsx --run
+
   backend-build:
     name: Backend - Build
     runs-on: ubuntu-latest
-    needs: backend-test
+    needs: frontend-test
     strategy:
       matrix:
         python-version: [ '3.10', '3.11' ]
@@ -84,64 +111,10 @@ jobs:
         run: |
           ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
 
-  backend-docker:
-    name: Backend - Docker build
-    runs-on: ubuntu-latest
-    needs: backend-build
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Login to Yandex Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: cr.yandex
-          username: oauth
-          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
-
-  # ==================== FRONTEND JOBS ====================
-
-  frontend-test:
-    name: Frontend - Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [ '20.x', '22.x' ]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-      
-      - name: Run tests
-        working-directory: ./frontend
-        run: npm test -- tests/core-logic.test.tsx --run
-
   frontend-build:
     name: Frontend - Build
     runs-on: ubuntu-latest
-    needs: frontend-test
+    needs: backend-build
     strategy:
       matrix:
         node-version: [ '20.x', '22.x' ]
@@ -169,10 +142,36 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-  frontend-docker:
-    name: Frontend - Docker build
+  backend-docker:
+    name: backend-push-docker
     runs-on: ubuntu-latest
     needs: frontend-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: cr.yandex
+          username: oauth
+          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
+
+  frontend-docker:
+    name: frontend-push-docker
+    runs-on: ubuntu-latest
+    needs: backend-docker
 
     steps:
       - name: Checkout
