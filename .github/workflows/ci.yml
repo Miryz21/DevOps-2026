@@ -143,7 +143,7 @@ jobs:
         run: npm run build
 
   backend-push-docker:
-    name: Frontend - Build and Push Docker
+    name: Backend - Build and Push Docker
     runs-on: ubuntu-latest
     needs: frontend-build
 
