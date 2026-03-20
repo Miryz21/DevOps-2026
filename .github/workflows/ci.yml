@@ -46,37 +46,10 @@ jobs:
         run: |
           ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
 
-  frontend-test:
-    name: Frontend - Test
-    runs-on: ubuntu-latest
-    needs: backend-test
-    strategy:
-      matrix:
-        node-version: [ '22.x' ]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm install
-      
-      - name: Run tests
-        working-directory: ./frontend
-        run: npm test -- tests/core-logic.test.tsx --run
-
   backend-build:
     name: Backend - Build
     runs-on: ubuntu-latest
-    needs: frontend-test
+    needs: backend-test
     strategy:
       matrix:
         python-version: [ '3.10', '3.11' ]
@@ -111,10 +84,38 @@ jobs:
         run: |
           ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
 
+  frontend-test:
+    name: Frontend - Test
+    runs-on: ubuntu-latest
+    needs: backend-build
+    strategy:
+      matrix:
+        node-version: [ '22.x' ]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- tests/core-logic.test.tsx --run
+
+
   frontend-build:
     name: Frontend - Build
     runs-on: ubuntu-latest
-    needs: backend-build
+    needs: frontend-test
     strategy:
       matrix:
         node-version: ['22.x' ]
