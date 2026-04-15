@@ -42,10 +42,19 @@ jobs:
         run: |
           ~/.local/bin/uv sync --all-extras
 
+      - name: Install test dependencies
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv sync --all-extras
+          ~/.local/bin/uv run pip install pytest-cov
+
       - name: Run tests
         working-directory: ./backend
         run: |
-          ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
+          ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term
 
 
   # ==================== BACKEND SONAR ====================
@@ -75,7 +84,7 @@ jobs:
             -Dsonar.sources=. \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
 
 
   # ==================== BACKEND BUILD ====================
@@ -161,11 +170,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           sonar-scanner \
-            -Dsonar.projectKey=frontend \
-            -Dsonar.sources=src \
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+              -Dsonar.projectKey=frontend \
+              -Dsonar.branch.name=main \
+              -Dsonar.sources=src \
+              -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+              -Dsonar.login=$SONAR_TOKEN
 
 
   # ==================== FRONTEND BUILD ====================
