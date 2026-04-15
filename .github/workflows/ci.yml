@@ -8,8 +8,6 @@ on:
 
 jobs:
 
-  # ==================== BACKEND TEST ====================
-
   backend-test:
     name: Backend - Test
     runs-on: ubuntu-latest
@@ -18,46 +16,30 @@ jobs:
         python-version: ['3.10', '3.11']
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install uv package manager
+      - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Cache uv dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
 
       - name: Install dependencies
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
+        run: ~/.local/bin/uv sync --all-extras
 
       - name: Install test dependencies
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
-          ~/.local/bin/uv run pip install pytest-cov
+        run: ~/.local/bin/uv run pip install pytest-cov
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: ./backend
         run: |
           ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short \
             --cov=src \
-            --cov-report=xml \
-            --cov-report=term
+            --cov-report=xml:coverage.xml
 
-
-  # ==================== BACKEND SONAR ====================
 
   backend-sonar:
     name: Backend - SonarQube
@@ -65,16 +47,15 @@ jobs:
     needs: backend-test
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Sonar Scanner
+      - name: Install sonar scanner
         run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip
+          curl -sSLo sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar.zip
           echo "$PWD/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Run SonarQube (Backend)
+      - name: Run SonarQube analysis
         working-directory: ./backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -84,43 +65,44 @@ jobs:
             -Dsonar.sources=. \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
+            -Dsonar.python.coverage.reportPaths=coverage.xml
 
+      - name: Check Quality Gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          STATUS=$(curl -s -u $SONAR_TOKEN: \
+            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=backend" \
+            | jq -r '.projectStatus.status')
 
-  # ==================== BACKEND BUILD ====================
+          echo "Quality Gate: $STATUS"
+
+          if [ "$STATUS" != "OK" ]; then
+            exit 1
+          fi
+
 
   backend-build:
     name: Backend - Build
     runs-on: ubuntu-latest
     needs: backend-sonar
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11']
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
 
-      - name: Install uv package manager
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Install dependencies
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
+        run: ~/.local/bin/uv sync --all-extras
 
       - name: Verify dependencies
-        working-directory: ./backend
-        run: |
-          ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
+        run: python -c "import fastapi, sqlmodel"
 
-
-  # ==================== FRONTEND TEST ====================
 
   frontend-test:
     name: Frontend - Test
@@ -128,26 +110,20 @@ jobs:
     needs: backend-build
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: ./frontend/package-lock.json
 
-      - name: Install dependencies
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npm install
 
-      - name: Run tests
-        working-directory: ./frontend
-        run: npm test -- tests/core-logic.test.tsx --run
+      - working-directory: ./frontend
+        run: npm test -- --run
 
-
-  # ==================== FRONTEND SONAR ====================
 
   frontend-sonar:
     name: Frontend - SonarQube
@@ -155,29 +131,39 @@ jobs:
     needs: frontend-test
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Sonar Scanner
+      - name: Install sonar scanner
         run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip
+          curl -sSLo sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar.zip
           echo "$PWD/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Run SonarQube (Frontend)
+      - name: Run SonarQube analysis
         working-directory: ./frontend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           sonar-scanner \
-              -Dsonar.projectKey=frontend \
-              -Dsonar.branch.name=main \
-              -Dsonar.sources=src \
-              -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-              -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.projectKey=frontend \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=$SONAR_TOKEN
 
+      - name: Check Quality Gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          STATUS=$(curl -s -u $SONAR_TOKEN: \
+            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=frontend" \
+            | jq -r '.projectStatus.status')
 
-  # ==================== FRONTEND BUILD ====================
+          echo "Quality Gate: $STATUS"
+
+          if [ "$STATUS" != "OK" ]; then
+            exit 1
+          fi
+
 
   frontend-build:
     name: Frontend - Build
@@ -185,30 +171,23 @@ jobs:
     needs: frontend-sonar
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: ./frontend/package-lock.json
 
-      - name: Install dependencies
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npm install
 
-      - name: Type check
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npx tsc --noEmit
 
-      - name: Build project
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npm run build
 
-
-  # ==================== BACKEND DOCKER ====================
 
   backend-push-docker:
     name: Backend - Build and Push Docker
@@ -218,25 +197,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to Yandex Container Registry
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: cr.yandex
           username: oauth
           password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
 
-
-  # ==================== FRONTEND DOCKER ====================
 
   frontend-push-docker:
     name: Frontend - Build and Push Docker
@@ -246,18 +220,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to Yandex Container Registry
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: cr.yandex
           username: oauth
           password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v5
         with:
           context: ./frontend
           build-args: |
