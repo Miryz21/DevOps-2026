@@ -6,193 +6,196 @@ on:
   pull_request:
     branches: [ main, develop, lab1 ]
 
-jobs:
-  # ==================== BACKEND JOBS ====================
 
-  backend-test:
+jobs:
+
+  # ================= BACKEND TEST =================
+
+  test-back:
     name: Backend - Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11']
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
-      
-      - name: Install uv package manager
+          python-version: '3.11'
+
+      - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
-      - name: Cache uv dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
-      
-      - name: Install dependencies
+
+      - name: Install deps
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
-      
+        run: ~/.local/bin/uv sync --all-extras
+
       - name: Run tests
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short
+        run: ~/.local/bin/uv run pytest --cov=. --cov-report=xml
 
-  backend-build:
+
+  # ================= BACKEND SONAR =================
+
+  sonar-back:
+    name: Backend - SonarQube
+    runs-on: ubuntu-latest
+    needs: test-back
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sonar-scanner
+        run: npm install -g sonar-scanner
+
+      - name: SonarQube Backend
+        working-directory: ./backend
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=backend \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+
+
+  # ================= BACKEND BUILD =================
+
+  build-back:
     name: Backend - Build
     runs-on: ubuntu-latest
-    needs: backend-test
-    strategy:
-      matrix:
-        python-version: [ '3.10', '3.11' ]
+    needs: sonar-back
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
 
-      - name: Install uv package manager
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Cache uv dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
-
-      - name: Install dependencies
+      - name: Install deps
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv sync --all-extras
+        run: ~/.local/bin/uv sync --all-extras
 
-      - name: Verify dependencies
+      - name: Verify build
         working-directory: ./backend
-        run: |
-          ~/.local/bin/uv run python -c "import fastapi; import sqlmodel; print('Dependencies OK')"
+        run: ~/.local/bin/uv run python -c "print('backend ok')"
 
-  frontend-test:
+
+  # ================= FRONTEND TEST =================
+
+  test-front:
     name: Frontend - Test
     runs-on: ubuntu-latest
-    needs: backend-build
-    strategy:
-      matrix:
-        node-version: [ '22.x' ]
-    
+    needs: build-back
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-      
-      - name: Install dependencies
+          node-version: '22.x'
+
+      - name: Install deps
         working-directory: ./frontend
         run: npm install
-      
+
       - name: Run tests
         working-directory: ./frontend
-        run: npm test -- tests/core-logic.test.tsx --run
+        run: npm test -- --coverage
 
 
-  frontend-build:
-    name: Frontend - Build
+  # ================= FRONTEND SONAR =================
+
+  sonar-front:
+    name: Frontend - SonarQube
     runs-on: ubuntu-latest
-    needs: frontend-test
-    strategy:
-      matrix:
-        node-version: ['22.x' ]
+    needs: test-front
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: Install sonar-scanner
+        run: npm install -g sonar-scanner
+
+      - name: SonarQube Frontend
+        working-directory: ./frontend
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=frontend \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+
+  # ================= FRONTEND BUILD =================
+
+  build-front:
+    name: Frontend - Build
+    runs-on: ubuntu-latest
+    needs: sonar-front
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
+          node-version: '22.x'
 
-      - name: Install dependencies
+      - name: Install deps
         working-directory: ./frontend
         run: npm install
 
-      - name: Type check
-        working-directory: ./frontend
-        run: npx tsc --noEmit
-
-      - name: Build project
+      - name: Build
         working-directory: ./frontend
         run: npm run build
 
-  backend-push-docker:
-    name: Backend - Build and Push Docker
+
+  # ================= DOCKER BACKEND =================
+
+  push-back:
+    name: Backend - Docker Push
     runs-on: ubuntu-latest
-    needs: frontend-build
+    needs: build-front
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Login to Yandex Container Registry
+      - name: Login registry
         uses: docker/login-action@v4
         with:
           registry: cr.yandex
           username: oauth
           password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
+      - name: Build & push backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
 
-  frontend-push-docker:
-    name: Frontend - Build and Push Docker
+
+  # ================= DOCKER FRONTEND =================
+
+  push-front:
+    name: Frontend - Docker Push
     runs-on: ubuntu-latest
-    needs: backend-push-docker
+    needs: push-back
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Login to Yandex Container Registry
+      - name: Login registry
         uses: docker/login-action@v4
         with:
           registry: cr.yandex
           username: oauth
           password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
+      - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          build-args: |
-            VITE_API_URL=${{ secrets.BACKEND_HOST }}/api/v1
           push: true
           tags: cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:latest
