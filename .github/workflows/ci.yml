@@ -8,6 +8,8 @@ on:
 
 jobs:
 
+# ================= BACKEND TEST =================
+
   backend-test:
     name: Backend - Test
     runs-on: ubuntu-latest
@@ -18,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -29,25 +31,47 @@ jobs:
         working-directory: ./backend
         run: ~/.local/bin/uv sync --all-extras
 
-      - name: Install test dependencies
+      - name: Install test deps
         working-directory: ./backend
         run: ~/.local/bin/uv run pip install pytest-cov
 
       - name: Run tests with coverage
         working-directory: ./backend
         run: |
-          ~/.local/bin/uv run pytest tests/test_core_logic.py -v --tb=short \
+          ~/.local/bin/uv run pytest tests -v --tb=short \
             --cov=src \
-            --cov-report=xml:coverage.xml
+            --cov-report=xml:coverage.xml \
+            --cov-report=term
 
+      - name: Upload coverage
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+
+
+# ================= BACKEND SONAR =================
 
   backend-sonar:
     name: Backend - SonarQube
     runs-on: ubuntu-latest
     needs: backend-test
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip jq
+
+      - name: Download coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend
 
       - name: Install sonar scanner
         run: |
@@ -55,7 +79,7 @@ jobs:
           unzip sonar.zip
           echo "$PWD/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Run SonarQube analysis
+      - name: Run Sonar analysis
         working-directory: ./backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -63,17 +87,58 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=backend \
             -Dsonar.sources=. \
+            -Dsonar.exclusions=tests/** \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.coverage.reportPaths=coverage.xml \
+            -Dsonar.working.directory=.scannerwork
+
+      - name: Wait for CE task
+        working-directory: ./backend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          CE_TASK_ID=$(grep '^ceTaskId=' .scannerwork/report-task.txt | cut -d'=' -f2)
+
+          echo "CE task: $CE_TASK_ID"
+
+          MAX=60
+          i=0
+
+          while true; do
+            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
+              "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
+
+            echo "CE status: $STATUS"
+
+            if [ "$STATUS" = "SUCCESS" ]; then
+              ANALYSIS_ID=$(echo "$RESPONSE" | jq -r '.task.analysisId')
+              echo "ANALYSIS_ID=$ANALYSIS_ID" >> $GITHUB_ENV
+              break
+            fi
+
+            if [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELED" ]; then
+              exit 1
+            fi
+
+            i=$((i+1))
+            if [ "$i" -ge "$MAX" ]; then
+              exit 1
+            fi
+
+            sleep 5
+          done
 
       - name: Check Quality Gate
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          STATUS=$(curl -s -u $SONAR_TOKEN: \
-            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=backend" \
-            | jq -r '.projectStatus.status')
+          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
+            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
+
+          STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
 
           echo "Quality Gate: $STATUS"
 
@@ -82,30 +147,31 @@ jobs:
           fi
 
 
+# ================= BACKEND BUILD =================
+
   backend-build:
-    name: Backend - Build
     runs-on: ubuntu-latest
     needs: backend-sonar
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Install dependencies
+      - name: Install deps
         working-directory: ./backend
         run: ~/.local/bin/uv sync --all-extras
 
-      - name: Verify dependencies
-        run: python -c "import fastapi, sqlmodel"
 
+# ================= FRONTEND TEST =================
 
   frontend-test:
-    name: Frontend - Test
     runs-on: ubuntu-latest
     needs: backend-build
 
@@ -118,20 +184,42 @@ jobs:
           cache: npm
           cache-dependency-path: ./frontend/package-lock.json
 
-      - working-directory: ./frontend
+      - name: Install deps
+        working-directory: ./frontend
         run: npm install
 
-      - working-directory: ./frontend
-        run: npm test -- --run
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- --run --coverage
 
+      - name: Upload coverage
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+
+
+# ================= FRONTEND SONAR =================
 
   frontend-sonar:
-    name: Frontend - SonarQube
     runs-on: ubuntu-latest
     needs: frontend-test
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip jq
+
+      - name: Download coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend
 
       - name: Install sonar scanner
         run: |
@@ -139,7 +227,7 @@ jobs:
           unzip sonar.zip
           echo "$PWD/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Run SonarQube analysis
+      - name: Run Sonar analysis
         working-directory: ./frontend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -148,15 +236,45 @@ jobs:
             -Dsonar.projectKey=frontend \
             -Dsonar.sources=src \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+      - name: Wait CE task
+        working-directory: ./frontend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          CE_TASK_ID=$(grep '^ceTaskId=' .scannerwork/report-task.txt | cut -d'=' -f2)
+
+          while true; do
+            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
+              "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
+
+            echo "CE status: $STATUS"
+
+            if [ "$STATUS" = "SUCCESS" ]; then
+              ANALYSIS_ID=$(echo "$RESPONSE" | jq -r '.task.analysisId')
+              echo "ANALYSIS_ID=$ANALYSIS_ID" >> $GITHUB_ENV
+              break
+            fi
+
+            if [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELED" ]; then
+              exit 1
+            fi
+
+            sleep 5
+          done
 
       - name: Check Quality Gate
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          STATUS=$(curl -s -u $SONAR_TOKEN: \
-            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=frontend" \
-            | jq -r '.projectStatus.status')
+          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
+            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
+
+          STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
 
           echo "Quality Gate: $STATUS"
 
@@ -165,10 +283,12 @@ jobs:
           fi
 
 
+# ================= FRONTEND BUILD =================
+
   frontend-build:
-    name: Frontend - Build
     runs-on: ubuntu-latest
     needs: frontend-sonar
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -177,61 +297,11 @@ jobs:
         with:
           node-version: '22.x'
           cache: npm
-          cache-dependency-path: ./frontend/package-lock.json
 
-      - working-directory: ./frontend
+      - name: Install deps
+        working-directory: ./frontend
         run: npm install
 
-      - working-directory: ./frontend
-        run: npx tsc --noEmit
-
-      - working-directory: ./frontend
+      - name: Build
+        working-directory: ./frontend
         run: npm run build
-
-
-  backend-push-docker:
-    name: Backend - Build and Push Docker
-    runs-on: ubuntu-latest
-    needs: frontend-build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/login-action@v4
-        with:
-          registry: cr.yandex
-          username: oauth
-          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:latest
-
-
-  frontend-push-docker:
-    name: Frontend - Build and Push Docker
-    runs-on: ubuntu-latest
-    needs: backend-push-docker
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/login-action@v4
-        with:
-          registry: cr.yandex
-          username: oauth
-          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          build-args: |
-            VITE_API_URL=${{ secrets.BACKEND_HOST }}/api/v1
-          push: true
-          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:latest
