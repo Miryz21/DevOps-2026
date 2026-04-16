@@ -40,6 +40,8 @@ jobs:
         run: |
           ~/.local/bin/uv run pytest tests -v --tb=short \
             --cov=src \
+            --cov=security \
+            --cov=main.py \
             --cov-report=xml:coverage.xml \
             --cov-report=term
 
