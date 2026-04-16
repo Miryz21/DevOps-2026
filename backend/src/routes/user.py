@@ -1,5 +1,5 @@
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Annotated
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -19,7 +19,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
 
 
 def get_current_user(
-    session: Session = Depends(get_session), token: str = Depends(oauth2_scheme)
+    session: Annotated[Session, Depends(get_session)], token: Annotated[str, Depends(oauth2_scheme)]
 ) -> UserInfo:
     try:
         payload = decode_access_token(token)
@@ -38,7 +38,7 @@ def get_current_user(
 
 
 @router.post("/users/register", response_model=UserToken)
-def create_user(*, session: Session = Depends(get_session), user_in: UserCreate):
+def create_user(*, session: Annotated[Session, Depends(get_session)], user_in: UserCreate):
     user = session.exec(select(UserInfo).where(UserInfo.email == user_in.email)).first()
     if user:
         raise HTTPException(
@@ -64,7 +64,7 @@ def create_user(*, session: Session = Depends(get_session), user_in: UserCreate)
 @router.post("/users/login")
 def login(
     *,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
     user: UserInfo = session.exec(select(UserInfo).where(UserInfo.email == form_data.username)).first()
@@ -73,7 +73,7 @@ def login(
             status_code=400, detail="Incorrect email or password"
         )
 
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     session.add(user)
     session.commit()
 

@@ -1,5 +1,5 @@
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -16,10 +16,10 @@ class Note(NoteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     area_id: Optional[int] = Field(default=None, foreign_key="area.id")
     user_id: Optional[int] = Field(default=None, foreign_key="user_info.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
         nullable=False,
     )
 

@@ -1,5 +1,5 @@
-from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, Query, HTTPException
+from typing import List, Optional, Union, Annotated
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select, or_
 
 from src.core.database import get_session
@@ -18,8 +18,8 @@ def search_items(
     query: str = Query(..., min_length=1),
     item_type: Optional[str] = Query(None, description="Filter by item type: 'task' or 'note'"),
     limit: int = 10,
-    session: Session = Depends(get_session),
-    current_user: UserInfo = Depends(get_current_user)
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[UserInfo, Depends(get_current_user)],
 ) -> List[Union[TaskSearchResult, NoteSearchResult]]:
     
     search_pattern = f"%{query}%"

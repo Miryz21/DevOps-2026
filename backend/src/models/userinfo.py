@@ -1,5 +1,5 @@
 from typing import List, Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -17,11 +17,11 @@ class UserInfo(UserBase, table=True):
 
     id: int = Field(default=None, primary_key=True)
     hashed_password: str
-    last_login: datetime = Field(default_factory=datetime.utcnow)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    last_login: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
         nullable=False,
     )
 

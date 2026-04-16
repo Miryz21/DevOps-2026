@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 
 from jwt import JWT, jwk_from_pem
 from jwt.exceptions import JWTDecodeError
 from passlib.context import CryptContext
+from pathlib import Path
 
 from src.core.config import settings
 
@@ -13,20 +14,30 @@ jwt = JWT()
 ALGORITHM = "RS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 168
 
-with open(settings.SECRET_KEY, "rb") as fh:
-    SECRET_JWK = jwk_from_pem(fh.read())
+def _load_pem(value: str) -> bytes:
+    """Accept either raw PEM content or a filesystem path to a PEM file."""
+    if value.strip().startswith("-----BEGIN"):
+        return value.encode()
 
-with open(settings.PUBLIC_KEY, "rb") as fh:
-    PUBLIC_JWK = jwk_from_pem(fh.read())
+    p = Path(value)
+    if p.exists():
+        return p.read_bytes()
+
+    raise FileNotFoundError(f"Key not found at {value}")
+
+
+SECRET_JWK = jwk_from_pem(_load_pem(settings.SECRET_KEY))
+PUBLIC_JWK = jwk_from_pem(_load_pem(settings.PUBLIC_KEY))
 
 
 def create_access_token(
     subject: Union[str, Any], expires_delta: timedelta = None
 ) -> str:
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+        expire = now + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode = {"exp": int(expire.timestamp()), "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, SECRET_JWK, alg=ALGORITHM)
     return encoded_jwt

@@ -100,8 +100,6 @@ jobs:
         run: |
           CE_TASK_ID=$(grep '^ceTaskId=' .scannerwork/report-task.txt | cut -d'=' -f2)
 
-          echo "CE task: $CE_TASK_ID"
-
           MAX=60
           i=0
 
@@ -110,8 +108,6 @@ jobs:
               "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
 
             STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
-
-            echo "CE status: $STATUS"
 
             if [ "$STATUS" = "SUCCESS" ]; then
               ANALYSIS_ID=$(echo "$RESPONSE" | jq -r '.task.analysisId')
@@ -124,9 +120,7 @@ jobs:
             fi
 
             i=$((i+1))
-            if [ "$i" -ge "$MAX" ]; then
-              exit 1
-            fi
+            if [ "$i" -ge "$MAX" ]; then exit 1; fi
 
             sleep 5
           done
@@ -140,8 +134,6 @@ jobs:
 
           STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
 
-          echo "Quality Gate: $STATUS"
-
           if [ "$STATUS" != "OK" ]; then
             exit 1
           fi
@@ -150,6 +142,7 @@ jobs:
 # ================= BACKEND BUILD =================
 
   backend-build:
+    name: Backend - Build
     runs-on: ubuntu-latest
     needs: backend-sonar
     if: github.event_name == 'push'
@@ -164,14 +157,20 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ./backend
         run: ~/.local/bin/uv sync --all-extras
+
+      - name: Sanity check
+        working-directory: ./backend
+        run: |
+          ~/.local/bin/uv run python -c "import main; print('backend OK')"
 
 
 # ================= FRONTEND TEST =================
 
   frontend-test:
+    name: Frontend - Test
     runs-on: ubuntu-latest
     needs: backend-build
 
@@ -184,25 +183,25 @@ jobs:
           cache: npm
           cache-dependency-path: ./frontend/package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ./frontend
         run: npm install
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: ./frontend
-        run: npm test -- --run --coverage
+        run: npm test -- --run --coverage --coverageReporters=lcov
 
       - name: Upload coverage
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: frontend/coverage/lcov.info
+          path: frontend/coverage
 
 
 # ================= FRONTEND SONAR =================
 
   frontend-sonar:
+    name: Frontend - SonarQube
     runs-on: ubuntu-latest
     needs: frontend-test
     if: github.event_name == 'push'
@@ -237,22 +236,24 @@ jobs:
             -Dsonar.sources=src \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.working.directory=.scannerwork
 
-      - name: Wait CE task
+      - name: Wait for CE task
         working-directory: ./frontend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           CE_TASK_ID=$(grep '^ceTaskId=' .scannerwork/report-task.txt | cut -d'=' -f2)
 
+          MAX=60
+          i=0
+
           while true; do
             RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
               "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
 
             STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
-
-            echo "CE status: $STATUS"
 
             if [ "$STATUS" = "SUCCESS" ]; then
               ANALYSIS_ID=$(echo "$RESPONSE" | jq -r '.task.analysisId')
@@ -263,6 +264,9 @@ jobs:
             if [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELED" ]; then
               exit 1
             fi
+
+            i=$((i+1))
+            if [ "$i" -ge "$MAX" ]; then exit 1; fi
 
             sleep 5
           done
@@ -276,8 +280,6 @@ jobs:
 
           STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
 
-          echo "Quality Gate: $STATUS"
-
           if [ "$STATUS" != "OK" ]; then
             exit 1
           fi
@@ -286,6 +288,7 @@ jobs:
 # ================= FRONTEND BUILD =================
 
   frontend-build:
+    name: Frontend - Build
     runs-on: ubuntu-latest
     needs: frontend-sonar
     if: github.event_name == 'push'
@@ -296,12 +299,82 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-          cache: npm
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ./frontend
         run: npm install
 
-      - name: Build
+      - name: Build frontend
         working-directory: ./frontend
         run: npm run build
+
+
+# ================= DOCKER BUILD & PUSH =================
+
+  docker-build-push:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: frontend-build
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Yandex Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: cr.yandex
+          username: oauth
+          password: ${{ secrets.YANDEX_OAUTH_TOKEN }}
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/backend:${{ github.sha }}
+
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:${{ github.sha }}
+
+
+# ================= GITOPS UPDATE =================
+
+  update-gitops:
+    name: Update GitOps (Argo CD sync trigger)
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup git auth
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+
+      - name: Update backend image
+        run: |
+          sed -i "s|cr.yandex/${{ secrets.REGISTRY_ID }}/backend:.*|cr.yandex/${{ secrets.REGISTRY_ID }}/backend:${{ github.sha }}|g" k8s/backend/deployment.yaml
+
+      - name: Update frontend image
+        run: |
+          sed -i "s|cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:.*|cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:${{ github.sha }}|g" k8s/frontend/deployment.yaml
+
+      - name: Commit and push GitOps update
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add k8s/
+
+          git commit -m "chore(gitops): update images to ${{ github.sha }}" || echo "no changes"
+
+          git push

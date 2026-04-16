@@ -21,11 +21,20 @@ spec:
             - containerPort: 5555
           env:
             - name: DATABASE_URL
-              value: postgresql://devops:devops_secret_password@postgres:5432/devops
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: DATABASE_URL
             - name: SECRET_KEY
-              value: keys/private.pem
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: SECRET_KEY
             - name: PUBLIC_KEY
-              value: keys/public.pem
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: PUBLIC_KEY
           readinessProbe:
             httpGet:
               path: /docs
