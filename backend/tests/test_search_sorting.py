@@ -43,7 +43,8 @@ def test_search_limit_and_item_type_note():
     results = search_items(query="x", item_type="note", limit=1, session=mock_session, current_user=user)
 
     assert len(results) == 1
-    assert results[0].id == 10
+    # Notes are sorted by `updated_at` (newest first); n2 was created after n1
+    assert results[0].id == 11
 
 
 def test_search_item_type_all_returns_both():
