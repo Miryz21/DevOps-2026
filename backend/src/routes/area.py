@@ -43,7 +43,6 @@ def read_areas(
     return areas
 
 
-@router.get("/areas/{area_id}", response_model=AreaPublic)
 @router.get("/areas/{area_id}", response_model=AreaPublic, responses={404: {"description": AREA_NOT_FOUND}})
 def read_area(
     *,
@@ -57,7 +56,6 @@ def read_area(
     return area
 
 
-@router.patch("/areas/{area_id}", response_model=AreaPublic)
 @router.patch("/areas/{area_id}", response_model=AreaPublic, responses={404: {"description": AREA_NOT_FOUND}})
 def update_area(
     *,
@@ -78,7 +76,6 @@ def update_area(
     return area
 
 
-@router.delete("/areas/{area_id}")
 @router.delete("/areas/{area_id}", responses={404: {"description": AREA_NOT_FOUND}})
 def delete_area(
     *,

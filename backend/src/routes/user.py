@@ -26,7 +26,12 @@ def get_current_user(
         token_email: Optional[str] = payload.get("sub")
         if token_email is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-    except (ValueError, ValidationError):
+    except ValidationError:
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+        )
+    except ValueError:
         raise HTTPException(
             status_code=401,
             detail="Could not validate credentials",
@@ -37,7 +42,7 @@ def get_current_user(
     return user
 
 
-@router.post("/users/register", response_model=UserToken)
+@router.post("/users/register", response_model=UserToken, responses={400: {"description": "User already exists"}})
 def create_user(*, session: Annotated[Session, Depends(get_session)], user_in: UserCreate):
     user = session.exec(select(UserInfo).where(UserInfo.email == user_in.email)).first()
     if user:
@@ -61,11 +66,11 @@ def create_user(*, session: Annotated[Session, Depends(get_session)], user_in: U
     return UserToken(access_token=access_token)
 
 
-@router.post("/users/login")
+@router.post("/users/login", responses={400: {"description": "Incorrect email or password"}})
 def login(
     *,
     session: Annotated[Session, Depends(get_session)],
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
     user: UserInfo = session.exec(select(UserInfo).where(UserInfo.email == form_data.username)).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -82,5 +87,5 @@ def login(
 
 
 @router.get("/users/me", response_model=UserPublic)
-def read_users_me(current_user: UserInfo = Depends(get_current_user)):
+def read_users_me(current_user: Annotated[UserInfo, Depends(get_current_user)]):
     return current_user

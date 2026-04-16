@@ -20,7 +20,7 @@ def check_correct_area_id(session: Session, area_id: int, user_id: int) -> Area:
     return area
 
 
-@router.post("/notes/", response_model=NotePublic)
+@router.post("/notes/", response_model=NotePublic, responses={404: {"description": AREA_NOT_FOUND}})
 def create_note(
     *,
     session: Annotated[Session, Depends(get_session)],
@@ -36,7 +36,7 @@ def create_note(
     return note
 
 
-@router.get("/notes/", response_model=list[NotePublic])
+@router.get("/notes/", response_model=list[NotePublic], responses={404: {"description": AREA_NOT_FOUND}})
 def read_notes(
     *,
     session: Annotated[Session, Depends(get_session)],
@@ -55,7 +55,6 @@ def read_notes(
     return notes
 
 
-@router.get("/notes/{note_id}", response_model=NotePublic)
 @router.get("/notes/{note_id}", response_model=NotePublic, responses={404: {"description": NOTE_NOT_FOUND}})
 def read_note(
     *,
@@ -69,7 +68,6 @@ def read_note(
     return note
 
 
-@router.patch("/notes/{note_id}", response_model=NotePublic)
 @router.patch("/notes/{note_id}", response_model=NotePublic, responses={404: {"description": NOTE_NOT_FOUND}})
 def update_note(
     *,
@@ -95,7 +93,6 @@ def update_note(
     return note
 
 
-@router.delete("/notes/{note_id}")
 @router.delete("/notes/{note_id}", responses={404: {"description": NOTE_NOT_FOUND}})
 def delete_note(
     *,

@@ -20,7 +20,7 @@ def check_correct_area_id(session: Session, area_id: int, user_id: int) -> Area:
     return area
 
 
-@router.post("/tasks/", response_model=TaskPublic)
+@router.post("/tasks/", response_model=TaskPublic, responses={404: {"description": AREA_NOT_FOUND}})
 def create_task(
     *,
     session: Annotated[Session, Depends(get_session)],
@@ -36,7 +36,7 @@ def create_task(
     return task
 
 
-@router.get("/tasks/", response_model=list[TaskPublic])
+@router.get("/tasks/", response_model=list[TaskPublic], responses={404: {"description": AREA_NOT_FOUND}})
 def read_tasks(
     *,
     session: Annotated[Session, Depends(get_session)],
@@ -54,7 +54,6 @@ def read_tasks(
     return tasks
 
 
-@router.get("/tasks/{task_id}", response_model=TaskPublic)
 @router.get("/tasks/{task_id}", response_model=TaskPublic, responses={404: {"description": TASK_NOT_FOUND}})
 def read_task(
     *,
@@ -68,7 +67,6 @@ def read_task(
     return task
 
 
-@router.patch("/tasks/{task_id}", response_model=TaskPublic)
 @router.patch("/tasks/{task_id}", response_model=TaskPublic, responses={404: {"description": TASK_NOT_FOUND}})
 def update_task(
     *,
@@ -94,7 +92,6 @@ def update_task(
     return task
 
 
-@router.delete("/tasks/{task_id}")
 @router.delete("/tasks/{task_id}", responses={404: {"description": TASK_NOT_FOUND}})
 def delete_task(
     *,
