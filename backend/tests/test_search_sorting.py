@@ -36,8 +36,8 @@ def test_search_limit_and_item_type_note():
     n2 = Note(id=11, title="N2", content="x", user_id=1)
 
     mock_session = Mock()
-    # When searching notes only, search() will call exec twice (first tasks, then notes)
-    mock_session.exec.side_effect = [_make_query_result([]), _make_query_result([n1, n2])]
+    # When searching notes only, search() should only call exec once for notes.
+    mock_session.exec.return_value = _make_query_result([n1, n2])
 
     user = UserInfo(id=1)
     results = search_items(query="x", item_type="note", limit=1, session=mock_session, current_user=user)
