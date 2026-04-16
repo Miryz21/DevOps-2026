@@ -2,18 +2,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 import uuid
 
-from jwt import JWT, jwk_from_pem
-from jwt.exceptions import JWTDecodeError
 from passlib.context import CryptContext
 from pathlib import Path
 
 from src.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-jwt = JWT()
+# JWT client and JWKs are created lazily to avoid importing cryptography at
+# module import time (which can cause PyO3/cryptography initialization errors
+# during test collection).
+_jwt_client = None
 
 ALGORITHM = "RS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 168
+
 
 def _load_pem(value: str) -> bytes:
     """Accept either raw PEM content or a filesystem path to a PEM file."""
@@ -34,18 +36,23 @@ PUBLIC_JWK = None
 def _ensure_jwks() -> None:
     """Lazily load JWKs from settings. Raises RuntimeError when keys are missing.
 
-    Loading is deferred so test collection/import-time doesn't require configured secrets.
+    Loading is deferred so test collection/import-time doesn't require configured
+    secrets or the `cryptography` Rust extension being initialized.
     """
-    global SECRET_JWK, PUBLIC_JWK
-    if SECRET_JWK is not None and PUBLIC_JWK is not None:
+    global SECRET_JWK, PUBLIC_JWK, _jwt_client
+    if SECRET_JWK is not None and PUBLIC_JWK is not None and _jwt_client is not None:
         return
 
     if not settings.SECRET_KEY or not settings.PUBLIC_KEY:
         # Leave uninitialized; calling code should handle missing keys or tests may patch
         raise RuntimeError("JWT keys are not configured. Set SECRET_KEY and PUBLIC_KEY environment variables.")
 
-    SECRET_JWK = jwk_from_pem(_load_pem(settings.SECRET_KEY))
-    PUBLIC_JWK = jwk_from_pem(_load_pem(settings.PUBLIC_KEY))
+    # Import jwt and the jwk loader only when keys are required.
+    from jwt import JWT, jwk_from_pem as _jwk_from_pem
+
+    _jwt_client = JWT()
+    SECRET_JWK = _jwk_from_pem(_load_pem(settings.SECRET_KEY))
+    PUBLIC_JWK = _jwk_from_pem(_load_pem(settings.PUBLIC_KEY))
 
 
 def create_access_token(
@@ -65,17 +72,24 @@ def create_access_token(
     else:
         expire = now + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode = {"exp": int(expire.timestamp()), "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, SECRET_JWK, alg=ALGORITHM)
+    encoded_jwt = _jwt_client.encode(to_encode, SECRET_JWK, alg=ALGORITHM)
     return encoded_jwt
 
 
 def decode_access_token(access_token: str) -> Any:
+    # _ensure_jwks will raise RuntimeError if keys are missing; let that propagate
+    # so callers/tests can handle or mock accordingly.
+    _ensure_jwks()
     try:
-        _ensure_jwks()
-        message_received = jwt.decode(access_token, PUBLIC_JWK, do_time_check=True)
+        message_received = _jwt_client.decode(access_token, PUBLIC_JWK, do_time_check=True)
         return message_received
-    except JWTDecodeError as e:
-        raise ValueError("Incorrect JWT") from e
+    except Exception as e:
+        # Import jwt exceptions lazily as well (jwt package is loaded by _ensure_jwks)
+        from jwt.exceptions import JWTDecodeError
+
+        if isinstance(e, JWTDecodeError):
+            raise ValueError("Incorrect JWT") from e
+        raise
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
