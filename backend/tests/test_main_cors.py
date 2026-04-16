@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+import unittest
 
 
 def _options_from_entry(entry):

@@ -1,3 +1,4 @@
+import unittest
 from src.core.database import get_session
 from sqlmodel import Session
 

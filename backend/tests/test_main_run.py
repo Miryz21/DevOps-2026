@@ -1,5 +1,6 @@
 import runpy
 import sys
+import unittest
 
 
 def test_main_runs_uvicorn(monkeypatch):
