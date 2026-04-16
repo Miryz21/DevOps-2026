@@ -26,13 +26,31 @@ def _load_pem(value: str) -> bytes:
     raise FileNotFoundError(f"Key not found at {value}")
 
 
-SECRET_JWK = jwk_from_pem(_load_pem(settings.SECRET_KEY))
-PUBLIC_JWK = jwk_from_pem(_load_pem(settings.PUBLIC_KEY))
+SECRET_JWK = None
+PUBLIC_JWK = None
+
+
+def _ensure_jwks() -> None:
+    """Lazily load JWKs from settings. Raises RuntimeError when keys are missing.
+
+    Loading is deferred so test collection/import-time doesn't require configured secrets.
+    """
+    global SECRET_JWK, PUBLIC_JWK
+    if SECRET_JWK is not None and PUBLIC_JWK is not None:
+        return
+
+    if not settings.SECRET_KEY or not settings.PUBLIC_KEY:
+        # Leave uninitialized; calling code should handle missing keys or tests may patch
+        raise RuntimeError("JWT keys are not configured. Set SECRET_KEY and PUBLIC_KEY environment variables.")
+
+    SECRET_JWK = jwk_from_pem(_load_pem(settings.SECRET_KEY))
+    PUBLIC_JWK = jwk_from_pem(_load_pem(settings.PUBLIC_KEY))
 
 
 def create_access_token(
     subject: Union[str, Any], expires_delta: timedelta = None
 ) -> str:
+    _ensure_jwks()
     now = datetime.now(timezone.utc)
     if expires_delta:
         expire = now + expires_delta
@@ -45,6 +63,7 @@ def create_access_token(
 
 def decode_access_token(access_token: str) -> Any:
     try:
+        _ensure_jwks()
         message_received = jwt.decode(access_token, PUBLIC_JWK, do_time_check=True)
         return message_received
     except JWTDecodeError as e:

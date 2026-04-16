@@ -1,15 +1,14 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 
 class Settings(BaseSettings):
-    # Require DATABASE_URL to be provided via environment for security
-    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    # Safe defaults for local development and tests. In production, override via env.
+    DATABASE_URL: str = "sqlite:///:memory:"
 
-    # Secret keys: these should be provided via environment (SECRET_KEY/PUBLIC_KEY)
-    # The values can be either the raw PEM content or a path to the PEM file
-    SECRET_KEY: str = Field(..., env="SECRET_KEY")
-    PUBLIC_KEY: str = Field(..., env="PUBLIC_KEY")
+    # SECRET_KEY / PUBLIC_KEY may contain raw PEM content or a path to a PEM file.
+    # Provide these via env vars in production.
+    SECRET_KEY: str = ""
+    PUBLIC_KEY: str = ""
 
     class Config:
         env_file = ".env"
