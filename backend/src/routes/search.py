@@ -16,8 +16,8 @@ router = APIRouter()
 def search_items(
     *,
     query: Annotated[str, Query(..., min_length=1)],
-    item_type: Annotated[Optional[str], Query(None, description="Filter by item type: 'task' or 'note'")] = None,
-    limit: Annotated[int, Query(10)],
+    item_type: Annotated[Optional[str], Query(description="Filter by item type: 'task' or 'note'")] = None,
+    limit: Annotated[int, Query()] = 10,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[UserInfo, Depends(get_current_user)],
 ) -> List[Union[TaskSearchResult, NoteSearchResult]]:
