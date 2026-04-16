@@ -1,3 +1,30 @@
+# Ignore sensitive files and local configs
+keys/
+*.pem
+*.key
+.env
+.env.*
+
+# VCS and editor files
+.git
+.gitignore
+.vscode/
+*.swp
+.DS_Store
+
+# Python build/cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Tests (not needed in production image)
+tests/
+
+# Local files
+.python-version
 # Python
 __pycache__
 *.py[cod]
