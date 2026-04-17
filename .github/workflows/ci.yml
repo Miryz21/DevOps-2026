@@ -38,11 +38,11 @@ jobs:
       - name: Run tests with coverage
         working-directory: ./backend
         run: |
-          ~/.local/bin/uv run pytest tests -v --tb=short 
-            --cov=src 
-            --cov=security 
-            --cov=main.py 
-            --cov-report=xml:coverage.xml 
+          ~/.local/bin/uv run pytest tests -v --tb=short \
+            --cov=src \
+            --cov=security \
+            --cov=main.py \
+            --cov-report=xml:coverage.xml \
             --cov-report=term
 
       - name: Upload coverage
@@ -86,13 +86,13 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          sonar-scanner 
-            -Dsonar.projectKey=backend 
-            -Dsonar.sources=. 
-            -Dsonar.exclusions=tests/** 
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} 
-            -Dsonar.login=$SONAR_TOKEN 
-            -Dsonar.python.coverage.reportPaths=coverage.xml 
+          sonar-scanner \
+            -Dsonar.projectKey=backend \
+            -Dsonar.sources=. \
+            -Dsonar.exclusions=tests/** \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.python.coverage.reportPaths=coverage.xml \
             -Dsonar.working.directory=.scannerwork
 
       - name: Wait for CE task
@@ -106,7 +106,7 @@ jobs:
           i=0
 
           while true; do
-            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" 
+            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
               "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
 
             STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
@@ -131,7 +131,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" 
+          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
             "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
 
           STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
@@ -266,18 +266,18 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          sonar-scanner 
-            -Dsonar.projectKey=frontend 
-            -Dsonar.projectBaseDir=$(pwd) 
-            -Dsonar.sources=services 
-            -Dsonar.tests=tests 
-            -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" 
-            -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" 
-            -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" 
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info 
-            -Dsonar.typescript.tsconfigPath=tsconfig.json 
-            -Dsonar.sourceEncoding=UTF-8 
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} 
+          sonar-scanner \
+            -Dsonar.projectKey=frontend \
+            -Dsonar.projectBaseDir=$(pwd) \
+            -Dsonar.sources=services \
+            -Dsonar.tests=tests \
+            -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" \
+            -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.typescript.tsconfigPath=tsconfig.json \
+            -Dsonar.sourceEncoding=UTF-8 \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN
 
       - name: Wait for CE task
@@ -291,7 +291,7 @@ jobs:
           i=0
 
           while true; do
-            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" 
+            RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
               "${{ secrets.SONAR_HOST_URL }}/api/ce/task?id=$CE_TASK_ID")
 
             STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
@@ -316,7 +316,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" 
+          RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
             "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?analysisId=$ANALYSIS_ID")
 
           STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
