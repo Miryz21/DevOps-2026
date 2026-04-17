@@ -71,7 +71,7 @@ const AreaDetails: React.FC<AreaDetailsProps> = ({ area, color, tasks, notes, on
                             onClick={() => onOpenTask(task)}
                             className={`group bg-white dark:bg-neutral-surface-dark rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-start gap-4 ${task.completed ? 'opacity-60 bg-slate-50 dark:bg-slate-900/40' : ''}`}
                         >
-                             <div className="pt-1" onClick={(e) => { e.stopPropagation(); onToggleTask(task.id, task.completed); }}>
+                             <div data-testid={`toggle-task-${task.id}`} className="pt-1" onClick={(e) => { e.stopPropagation(); onToggleTask(task.id, task.completed); }}>
                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                                     task.completed 
                                     ? 'bg-slate-300 dark:bg-slate-700 border-transparent text-white' 

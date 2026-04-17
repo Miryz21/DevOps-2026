@@ -121,7 +121,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate, onNewTask, onNe
                     className="w-48 pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-neutral-surface-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow shadow-sm outline-none"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => searchQuery.length > 1 && setSearchResults(searchResults)}
                 />
                 {isSearchLoading && (
                     <span className="absolute inset-y-0 right-0 flex items-center pr-3">

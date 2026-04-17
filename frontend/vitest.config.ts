@@ -29,12 +29,17 @@ export default defineConfig({
         'vitest.setup.ts',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/index.ts',
+        '**/index.tsx',
         'dist/',
         'coverage/',
         '.github/',
       ],
-      include: ['services/**/*.{ts,tsx}'],
+      include: [
+        'services/**/*.{ts,tsx}',
+        'pages/**/*.{ts,tsx}',
+        'components/**/*.{ts,tsx}',
+        'App.tsx'
+      ],
       all: true,
     }
   },

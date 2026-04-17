@@ -154,12 +154,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, user, onLogo
                         {/* Color Dot with Palette */}
                         <div className="relative">
                             <div
+                                data-testid="color-dot"
                                 onClick={() => setShowColorPalette(!showColorPalette)}
                                 className={`w-4 h-4 rounded-full ${newAreaColor} cursor-pointer hover:scale-110 transition-transform flex-shrink-0 mr-1 ring-1 ring-offset-1 ring-slate-300 dark:ring-slate-600 ring-offset-transparent`}
                             ></div>
 
                             {showColorPalette && (
-                                <div className="absolute bottom-full left-0 right-auto mb-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 grid grid-cols-3 gap-2 w-24">
+                                <div data-testid="color-palette" className="absolute bottom-full left-0 right-auto mb-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 grid grid-cols-3 gap-2 w-24">
                                     {colors.map(color => (
                                         <div
                                             key={color}
