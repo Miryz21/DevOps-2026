@@ -28,7 +28,7 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
         // If unauthorized, clear token and notify app to logout
         if (response.status === 401) {
             localStorage.removeItem('focusflow_token');
-            window.dispatchEvent(new Event('auth:logout'));
+            globalThis.dispatchEvent(new Event('auth:logout'));
         }
         const errorData = await response.json().catch(() => ({ detail: 'An unknown error occurred' }));
         throw new Error(errorData.detail || 'An unknown error occurred');
