@@ -7,5 +7,35 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    reporters: [
+      'default',
+      'vitest-sonar-reporter'
+    ],
+    outputFile: {
+      'vitest-sonar-reporter': './coverage/test-results.xml'
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: [
+        'text',
+        'json',
+        'html',
+        'lcov',
+        'text-summary'
+      ],
+      reportsDirectory: './coverage',
+      exclude: [
+        'node_modules/',
+        'vitest.setup.ts',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/index.ts',
+        'dist/',
+        'coverage/',
+        '.github/',
+      ],
+      include: ['src/**/*.{ts,tsx}'],
+      all: true,
+    }
   },
 });

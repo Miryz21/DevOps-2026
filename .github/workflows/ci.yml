@@ -178,6 +178,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -187,21 +189,40 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm install
+        run: npm ci
 
       - name: Install coverage provider
         working-directory: ./frontend
-        run: npm install -D @vitest/coverage-v8 --legacy-peer-deps
+        run: npm install -D @vitest/coverage-v8@2.1.9 vitest-sonar-reporter
 
       - name: Run tests with coverage
         working-directory: ./frontend
-        run: npm test -- --run --coverage --coverage.reporters=lcov
+        run: npx vitest run --coverage
 
-      - name: Upload coverage
+      - name: Verify coverage files
+        working-directory: ./frontend
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            echo "lcov.info found"
+          else
+            echo "ERROR: lcov.info not found"
+            exit 1
+          fi
+          
+          if [ -f coverage/test-results.xml ]; then
+            echo "test-results.xml found"
+          else
+            echo "WARNING: test-results.xml not found"
+          fi
+
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: frontend/coverage
+          path: |
+            frontend/coverage/lcov.info
+            frontend/coverage/test-results.xml
+          if-no-files-found: error
 
 # ================= FRONTEND SONAR =================
 
@@ -239,9 +260,15 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=frontend \
             -Dsonar.sources=src \
+            -Dsonar.tests=src \
+            -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.d.ts" \
+            -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/index.ts,**/vitest.setup.ts" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.testExecutionReportPaths=coverage/test-results.xml \
+            -Dsonar.typescript.tsconfigPath=tsconfig.json \
             -Dsonar.working.directory=.scannerwork
 
       - name: Wait for CE task
