@@ -440,27 +440,52 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          STATUS: ${{ job.status }}
+          NEEDS_JSON: ${{ toJson(needs) }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
           ACTOR: ${{ github.actor }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          if [ "$STATUS" = "success" ]; then
-            MSG="CI/CD SUCCESS
+          echo "$NEEDS_JSON" > needs.json
+
+          FAILED=""
+          SUCCESS=""
+          SKIPPED=""
+
+          for row in $(jq -r 'to_entries[] | "\(.key)=\(.value.result)"' needs.json); do
+            JOB=$(echo $row | cut -d= -f1)
+            RES=$(echo $row | cut -d= -f2)
+
+            if [ "$RES" = "success" ]; then
+              SUCCESS="$SUCCESS\n✔ $JOB"
+            elif [ "$RES" = "failure" ]; then
+              FAILED="$FAILED\n✖ $JOB"
+            else
+              SKIPPED="$SKIPPED\n➖ $JOB ($RES)"
+            fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            STATUS="CI/CD FAILED"
+          else
+            STATUS="CI/CD SUCCESS"
+          fi
+
+          MSG="$STATUS
+
             Repository: $REPO
-            Commit: $SHA
+            Commit: ${SHA::7}
             Author: $ACTOR
+
+            --- SUCCESS ---$SUCCESS
+
+            --- FAILED ---$FAILED
+
+            --- SKIPPED ---$SKIPPED
+
             Run: https://github.com/$REPO/actions/runs/$RUN_ID"
-                    else
-                      MSG="CI/CD FAILED
-            Repository: $REPO
-            Commit: $SHA
-            Author: $ACTOR
-            Run: https://github.com/$REPO/actions/runs/$RUN_ID"
-                    fi
 
                     curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
                       -d chat_id="$CHAT_ID" \
-                      -d text="$MSG"
+                      --data-urlencode text="$MSG"
 
