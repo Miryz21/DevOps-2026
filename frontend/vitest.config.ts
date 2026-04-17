@@ -34,7 +34,7 @@ export default defineConfig({
         'coverage/',
         '.github/',
       ],
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['services/**/*.{ts,tsx}'],
       all: true,
     }
   },

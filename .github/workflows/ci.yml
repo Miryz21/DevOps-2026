@@ -269,7 +269,7 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=frontend \
             -Dsonar.projectBaseDir=$(pwd) \
-            -Dsonar.sources=. \
+            -Dsonar.sources=services \
             -Dsonar.tests=tests \
             -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
             -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" \
