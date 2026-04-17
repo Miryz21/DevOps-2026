@@ -191,7 +191,7 @@ jobs:
 
       - name: Install coverage provider
         working-directory: ./frontend
-        run: npm install -D @vitest/coverage-v8
+        run: npm install -D @vitest/coverage-v8 --legacy-peer-deps
 
       - name: Run tests with coverage
         working-directory: ./frontend
