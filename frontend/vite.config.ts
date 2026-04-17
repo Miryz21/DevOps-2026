@@ -18,6 +18,23 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      // Add Vitest configuration
+      test: {
+        globals: true,
+        environment: 'jsdom',
+        coverage: {
+          provider: 'v8',
+          reporter: ['text', 'json', 'html', 'lcov'],
+          reportsDirectory: './coverage',
+          exclude: [
+            'node_modules/',
+            'src/test/',
+            '**/*.d.ts',
+            '**/*.config.*',
+            '**/index.ts',
+          ]
+        }
       }
     };
 });
