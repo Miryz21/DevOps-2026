@@ -403,18 +403,18 @@ jobs:
 
       - name: Update backend image (yq)
         run: |
-          yq e -i '.spec.template.spec.containers[0].image = "cr.yandex/${{ secrets.REGISTRY_ID }}/backend:${{ github.sha }}"' gitops/base/backend/backend-deployment.yaml
+          yq e -i '.spec.template.spec.containers[0].image = "cr.yandex/${{ secrets.REGISTRY_ID }}/backend:${{ github.sha }}"' gitops/overlays/prod/base/backend/backend-deployment.yaml
 
       - name: Update frontend image (yq)
         run: |
-          yq e -i '.spec.template.spec.containers[0].image = "cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:${{ github.sha }}"' gitops/base/frontend/frontend-deployment.yaml
+          yq e -i '.spec.template.spec.containers[0].image = "cr.yandex/${{ secrets.REGISTRY_ID }}/frontend:${{ github.sha }}"' gitops/overlays/prod/base/frontend/frontend-deployment.yaml
 
       - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add gitops/base/
+          git add gitops
 
           git diff --cached --quiet && exit 0
 
