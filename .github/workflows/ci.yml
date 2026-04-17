@@ -189,6 +189,10 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
+      - name: Install coverage provider
+        working-directory: ./frontend
+        run: npm install -D @vitest/coverage-v8
+
       - name: Run tests with coverage
         working-directory: ./frontend
         run: npm test -- --run --coverage --coverage.reporters=lcov
@@ -198,7 +202,6 @@ jobs:
         with:
           name: frontend-coverage
           path: frontend/coverage
-
 
 # ================= FRONTEND SONAR =================
 
