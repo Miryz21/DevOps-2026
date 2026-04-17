@@ -268,15 +268,18 @@ jobs:
         run: |
           sonar-scanner \
             -Dsonar.projectKey=frontend \
-            -Dsonar.sources=. \
-            -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.d.ts" \
-            -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/index.ts,**/vitest.setup.ts" \
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.javascript.lcov.reportPaths=$(pwd)/coverage/lcov.info \
-            -Dsonar.testExecutionReportPaths=$(pwd)/coverage/test-results.xml \
+            -Dsonar.projectBaseDir=$(pwd) \
+            -Dsonar.sources=src \
+            -Dsonar.tests=src \
+            -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" \
+            -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.testExecutionReportPaths=coverage/test-results.xml \
             -Dsonar.typescript.tsconfigPath=tsconfig.json \
-            -Dsonar.working.directory=.scannerwork
+            -Dsonar.sourceEncoding=UTF-8 \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=$SONAR_TOKEN
 
       - name: Wait for CE task
         working-directory: ./frontend
