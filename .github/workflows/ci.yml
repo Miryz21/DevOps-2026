@@ -191,13 +191,21 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
+      - name: Ensure testing-library dom
+        working-directory: ./frontend
+        run: npm install -D @testing-library/dom@^10.0.0 --legacy-peer-deps
+
       - name: Install coverage provider
         working-directory: ./frontend
-        run: npm install -D @vitest/coverage-v8@2.1.9
+        run: npm install -D @vitest/coverage-v8@2.1.9 --legacy-peer-deps
+
+      - name: Prepare coverage dir
+        working-directory: ./frontend
+        run: mkdir -p coverage
 
       - name: Run tests with coverage
         working-directory: ./frontend
-        run: npx vitest run --coverage
+        run: npx vitest run --coverage --reporter=junit --reporter=default --outputFile.junit=./coverage/test-results.xml
 
       - name: Verify coverage files
         working-directory: ./frontend
@@ -212,7 +220,8 @@ jobs:
           if [ -f coverage/test-results.xml ]; then
             echo "test-results.xml found"
           else
-            echo "WARNING: test-results.xml not found"
+            echo "ERROR: test-results.xml not found"
+            exit 1
           fi
 
       - name: Upload coverage artifact
@@ -257,25 +266,15 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [ -f coverage/test-results.xml ]; then
-            echo "Using test execution report coverage/test-results.xml"
-            SONAR_TEST_REPORT="-Dsonar.testExecutionReportPaths=$(pwd)/coverage/test-results.xml"
-          else
-            echo "No test execution report found; skipping sonar.testExecutionReportPaths"
-            SONAR_TEST_REPORT=""
-          fi
-
           sonar-scanner \
             -Dsonar.projectKey=frontend \
-            -Dsonar.sources=src \
-            -Dsonar.tests=src \
-            -Dsonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx" \
+            -Dsonar.sources=. \
             -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.d.ts" \
             -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/index.ts,**/vitest.setup.ts" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.javascript.lcov.reportPaths=$(pwd)/coverage/lcov.info \
-            $SONAR_TEST_REPORT \
+            -Dsonar.testExecutionReportPaths=$(pwd)/coverage/test-results.xml \
             -Dsonar.typescript.tsconfigPath=tsconfig.json \
             -Dsonar.working.directory=.scannerwork
 
