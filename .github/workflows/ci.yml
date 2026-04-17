@@ -253,7 +253,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-coverage
-          path: .
+          path: frontend/coverage
 
       - name: Install sonar scanner
         run: |
