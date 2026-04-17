@@ -257,6 +257,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          if [ -f coverage/test-results.xml ]; then
+            echo "Using test execution report coverage/test-results.xml"
+            SONAR_TEST_REPORT="-Dsonar.testExecutionReportPaths=$(pwd)/coverage/test-results.xml"
+          else
+            echo "No test execution report found; skipping sonar.testExecutionReportPaths"
+            SONAR_TEST_REPORT=""
+          fi
+
           sonar-scanner \
             -Dsonar.projectKey=frontend \
             -Dsonar.sources=src \
@@ -266,8 +274,8 @@ jobs:
             -Dsonar.coverage.exclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/index.ts,**/vitest.setup.ts" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-            -Dsonar.testExecutionReportPaths=coverage/test-results.xml \
+            -Dsonar.javascript.lcov.reportPaths=$(pwd)/coverage/lcov.info \
+            $SONAR_TEST_REPORT \
             -Dsonar.typescript.tsconfigPath=tsconfig.json \
             -Dsonar.working.directory=.scannerwork
 
