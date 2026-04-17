@@ -420,3 +420,47 @@ jobs:
 
           git commit -m "chore(gitops): update images to ${{ github.sha }}"
           git push
+
+  notify:
+    name: Notify Telegram
+    runs-on: ubuntu-latest
+    needs:
+      - backend-test
+      - backend-sonar
+      - backend-build
+      - frontend-test
+      - frontend-sonar
+      - frontend-build
+      - docker-build-push
+      - update-gitops
+    if: always()
+
+    steps:
+      - name: Send Telegram message
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            MSG="CI/CD SUCCESS
+            Repository: $REPO
+            Commit: $SHA
+            Author: $ACTOR
+            Run: https://github.com/$REPO/actions/runs/$RUN_ID"
+                    else
+                      MSG="CI/CD FAILED
+            Repository: $REPO
+            Commit: $SHA
+            Author: $ACTOR
+            Run: https://github.com/$REPO/actions/runs/$RUN_ID"
+                    fi
+
+                    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+                      -d chat_id="$CHAT_ID" \
+                      -d text="$MSG"
+
