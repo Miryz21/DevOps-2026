@@ -193,7 +193,7 @@ jobs:
 
       - name: Install coverage provider
         working-directory: ./frontend
-        run: npm install -D @vitest/coverage-v8@2.1.9 vitest-sonar-reporter
+        run: npm install -D @vitest/coverage-v8@2.1.9 vitest-sonar-reporter@2
 
       - name: Run tests with coverage
         working-directory: ./frontend
