@@ -9,10 +9,10 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     reporters: [
       'default',
-      'vitest-sonar-reporter'
+      'junit'
     ],
     outputFile: {
-      'vitest-sonar-reporter': './coverage/test-results.xml'
+      junit: './coverage/test-results.xml'
     },
     coverage: {
       provider: 'v8',
