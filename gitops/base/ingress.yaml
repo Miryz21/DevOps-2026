@@ -12,13 +12,13 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: frontend
+            name: frontend:latest
             port:
               number: 80
       - path: /api
         pathType: Prefix
         backend:
           service:
-            name: backend
+            name: backend:latest
             port:
               number: 5555
